@@ -1,10 +1,18 @@
 import { Router } from "express";
-import { createOrder, getAdminOrders } from "../controllers/orderController.js";
+import { 
+  createOrder, 
+  getAdminOrders, 
+  getOrderById, 
+  updateOrderStatus, 
+  deleteOrder 
+} from "../controllers/orderController.js";
 
 const router = Router();
 
 router.post("/", createOrder);
 router.get("/admin", getAdminOrders);
+router.get("/:id", getOrderById);
+router.put("/:id/status", updateOrderStatus);
+router.delete("/:id", deleteOrder);
 
-// Pastikan baris export default ini ada di bagian paling bawah
 export default router;

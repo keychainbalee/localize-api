@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Running lokal di port 3000
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
@@ -11,5 +10,4 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// Export modul Express untuk Vercel Serverless Function
 export default app;
