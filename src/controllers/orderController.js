@@ -1,7 +1,8 @@
 import { db } from "../config/db.js";
 
 export const createOrder = async (req, res) => {
-  const { userId, totalAmount, shippingAddress, addressNotes, latitude, longitude, items } = req.body;
+  const userId = req.user ? req.user.id : req.body.userId;
+  const { totalAmount, shippingAddress, addressNotes, latitude, longitude, items } = req.body;
 
   if (!userId || !totalAmount || !shippingAddress || !items || items.length === 0) {
     return res.status(400).json({ 
@@ -72,6 +73,40 @@ export const createOrder = async (req, res) => {
       message: "Pesanan berhasil dibuat & stok otomatis berkurang!",
       orderId,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getMyOrders = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const result = await db.execute({
+      sql: `
+        SELECT 
+          o.id AS order_id,
+          o.total_amount,
+          o.shipping_address,
+          o.address_notes,
+          o.latitude,
+          o.longitude,
+          o.status,
+          o.created_at,
+          oi.size AS ordered_size,
+          oi.quantity AS ordered_quantity,
+          p.name AS product_name,
+          p.image_url AS product_image
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.id
+        WHERE o.user_id = ?
+        ORDER BY o.created_at DESC
+      `,
+      args: [userId],
+    });
+
+    res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

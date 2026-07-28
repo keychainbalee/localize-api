@@ -3,468 +3,540 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Localize - Quantity & Order Status Tester</title>
+  <title>Localize REST API - Manual Parameter Docs & Playground</title>
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
-    .card-img-top { height: 180px; object-fit: cover; }
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .badge-get { background-color: #0d6efd; color: white; width: 75px; }
+    .badge-post { background-color: #198754; color: white; width: 75px; }
+    .badge-put { background-color: #fd7e14; color: white; width: 75px; }
+    .badge-delete { background-color: #dc3545; color: white; width: 75px; }
+    .endpoint-card { border-left: 5px solid #6c757d; }
+    .endpoint-get { border-left-color: #0d6efd; }
+    .endpoint-post { border-left-color: #198754; }
+    .endpoint-put { border-left-color: #fd7e14; }
+    .endpoint-delete { border-left-color: #dc3545; }
+    pre { background-color: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-size: 13px; max-height: 250px; overflow-y: auto; }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
-  <nav class="navbar navbar-dark bg-dark sticky-top">
+  
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="#">👟 Localize Backend - Quantity & Status Tester</a>
-      <span class="badge bg-success">Status: Ready</span>
+      <a class="navbar-brand fw-bold" href="#">
+        👟 Localize <span class="badge bg-primary fs-6 ms-1">API Docs (Manual Params)</span>
+      </a>
     </div>
   </nav>
 
   <div class="container my-4">
-    <ul class="nav nav-pills mb-4 gap-2" id="pills-tab" role="tablist">
-      <li class="nav-item">
-        <button class="nav-link active fw-bold" id="tab-products" data-bs-toggle="pill" data-bs-target="#content-products" type="button" onclick="loadProducts()">
-          📦 Management Produk (Katalog & Stok)
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link fw-bold" id="tab-users" data-bs-toggle="pill" data-bs-target="#content-users" type="button" onclick="loadUsers()">
-          👥 Auth & User (CRUD)
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link fw-bold" id="tab-orders" data-bs-toggle="pill" data-bs-target="#content-orders" type="button" onclick="loadAdminOrders()">
-          🛒 Transaksi, Jumlah & Status (dipesan, dibayar, dikirim, selesai)
-        </button>
-      </li>
-    </ul>
-
-    <div class="tab-content" id="pills-tabContent">
-      
-      <div class="tab-pane fade show active" id="content-products">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Katalog Sepatu Lokal</h4>
-          <div>
-            <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#productModal" onclick="resetProductForm()">➕ Tambah Sepatu Baru</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="loadProducts()">🔄 Refresh</button>
-          </div>
-        </div>
-        
-        <div id="products-list" class="row g-3">
-          <div class="col-12 text-muted">Memuat data produk...</div>
-        </div>
+    
+    <div class="card shadow-sm border-0 mb-4 bg-dark text-white p-3">
+      <h6 class="fw-bold mb-2 text-warning"><i class="bi bi-key-fill"></i> JWT Authorization Token (Global Header)</h6>
+      <div class="input-group">
+        <span class="input-group-text bg-secondary text-white border-0">Bearer Token:</span>
+        <input type="text" id="globalJwtToken" class="form-control font-monospace text-success bg-black border-secondary" placeholder="Lakukan Login/Register untuk auto-fill atau tempel JWT Token manual di sini..." />
+        <button class="btn btn-outline-warning" onclick="clearToken()">Reset Token</button>
       </div>
-
-      <div class="tab-pane fade" id="content-users">
-        <div class="row g-4">
-          <div class="col-md-5">
-            <div class="card shadow-sm mb-4">
-              <div class="card-header bg-primary text-white fw-bold">📝 Register User Baru</div>
-              <div class="card-body">
-                <form id="registerForm" onsubmit="handleRegister(event)">
-                  <div class="mb-2"><label class="form-label small">Nama Lengkap</label><input type="text" id="regName" class="form-control form-control-sm" required /></div>
-                  <div class="mb-2"><label class="form-label small">Email</label><input type="email" id="regEmail" class="form-control form-control-sm" required /></div>
-                  <div class="mb-2"><label class="form-label small">No. Telepon</label><input type="text" id="regPhone" class="form-control form-control-sm" required /></div>
-                  <div class="mb-2"><label class="form-label small">Password</label><input type="password" id="regPassword" class="form-control form-control-sm" required /></div>
-                  <div class="mb-3"><label class="form-label small">Role</label><select id="regRole" class="form-select form-select-sm"><option value="customer">Customer</option><option value="admin">Admin</option></select></div>
-                  <button type="submit" class="btn btn-success btn-sm w-100">Register User</button>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-7">
-            <div class="table-responsive bg-white rounded shadow-sm">
-              <table class="table table-bordered table-hover mb-0">
-                <thead class="table-light"><tr><th>ID</th><th>Nama</th><th>Email</th><th>Role</th><th>Aksi</th></tr></thead>
-                <tbody id="users-table-body"><tr><td colspan="5" class="text-center text-muted">Memuat data...</td></tr></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-pane fade" id="content-orders">
-        <div class="row g-4">
-          <div class="col-md-5">
-            <div class="card shadow-sm">
-              <div class="card-header bg-success text-white fw-bold">🛒 Form Checkout Pesanan</div>
-              <div class="card-body">
-                <form id="orderForm" onsubmit="handleCreateOrder(event)">
-                  <div class="mb-2"><label class="form-label small">Pilih User Pembeli</label><select id="orderUserId" class="form-select form-select-sm" required></select></div>
-                  <div class="mb-2"><label class="form-label small">Pilih Sepatu</label><select id="orderProductId" class="form-select form-select-sm" onchange="updateSizeDropdown()" required></select></div>
-                  
-                  <div class="row g-2 mb-2">
-                    <div class="col-md-7">
-                      <label class="form-label small fw-bold text-primary">Ukuran Sepatu</label>
-                      <select id="orderProductSize" class="form-select form-select-sm" required></select>
-                    </div>
-                    <div class="col-md-5">
-                      <label class="form-label small fw-bold text-primary">Jumlah (Pasang)</label>
-                      <input type="number" id="orderQuantity" class="form-control form-control-sm" value="1" min="1" required />
-                    </div>
-                  </div>
-
-                  <div class="p-2 mb-2 border rounded bg-light">
-                    <label class="form-label small fw-bold mb-1">📍 Sensor GPS Device</label>
-                    <div class="row g-1 mb-2">
-                      <div class="col"><input type="number" step="any" id="orderLat" class="form-control form-control-sm" placeholder="Latitude" readonly /></div>
-                      <div class="col"><input type="number" step="any" id="orderLong" class="form-control form-control-sm" placeholder="Longitude" readonly /></div>
-                    </div>
-                    <button type="button" id="btnGps" class="btn btn-outline-primary btn-sm w-100" onclick="getGPSLocation()">📡 Deteksi Lokasi Saya & Terjemahkan Alamat</button>
-                  </div>
-
-                  <div class="mb-2"><label class="form-label small">Alamat Pengiriman</label><textarea id="orderAddress" class="form-control form-control-sm" rows="2" required></textarea></div>
-                  <div class="mb-3"><label class="form-label small">Patokan Lokasi</label><input type="text" id="orderNotes" class="form-control form-control-sm" /></div>
-
-                  <button type="submit" class="btn btn-success btn-sm w-100">Buat Pesanan (Status: dipesan)</button>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-7">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5>Data Pesanan Masuk (Admin)</h5>
-              <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminOrders()">🔄 Refresh Order</button>
-            </div>
-            <div class="table-responsive bg-white rounded shadow-sm">
-              <table class="table table-bordered table-striped align-middle mb-0">
-                <thead class="table-dark">
-                  <tr>
-                    <th>ID</th>
-                    <th>Pelanggan</th>
-                    <th>Detail Barang</th>
-                    <th>Alamat</th>
-                    <th>Total</th>
-                    <th>Status Pesanan</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="orders-table-body">
-                  <tr><td colspan="7" class="text-center text-muted">Memuat order...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <small class="text-muted mt-1">Token ini otomatis dikirimkan pada header <code>Authorization: Bearer &lt;token&gt;</code> untuk endpoint terproteksi.</small>
     </div>
-  </div>
 
-  <div class="modal fade" id="productModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="productModalTitle">Tambah Sepatu</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="productForm" onsubmit="handleSaveProduct(event)">
-            <input type="hidden" id="prodId" />
-            <div class="mb-2"><label class="form-label small">Nama Sepatu</label><input type="text" id="prodName" class="form-control" required /></div>
-            <div class="mb-2"><label class="form-label small">Deskripsi</label><textarea id="prodDesc" class="form-control" rows="2"></textarea></div>
-            <div class="mb-2"><label class="form-label small">Harga (Rp)</label><input type="number" id="prodPrice" class="form-control" required /></div>
-            
-            <div class="mb-3 p-2 bg-light border rounded">
-              <label class="form-label small fw-bold">Stok per Ukuran (JSON Format)</label>
-              <input type="text" id="prodSizeStock" class="form-control form-control-sm" value='{"39": 10, "40": 5, "41": 0, "42": 8}' required />
-              <small class="text-muted" style="font-size: 11px;">Contoh: {"38": 5, "39": 10, "40": 0}</small>
+    <div class="row">
+      <div class="col-12">
+
+        
+        <div id="sec-auth" class="mb-5">
+          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-people-fill text-primary"></i> 1. Authentication & Users (CRUD)</h4>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-post me-2">POST</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/register</code>
+              </div>
+              <p class="small text-muted mb-2">Pendaftaran user baru.</p>
+              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-register">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-register">
+                <div class="p-3 bg-light rounded border">
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-register" class="form-control font-monospace small mb-2" rows="5">{
+  "fullName": "Siti Rahma",
+  "email": "siti@mail.com",
+  "phoneNumber": "081299887766",
+  "password": "password123",
+  "role": "customer"
+}</textarea>
+                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/auth/register', 'POST', null, 'req-register', 'res-register', true)">Kirim Request</button>
+                  <pre id="res-register">// Response akan tampil di sini</pre>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Upload Gambar dari Komputer (Cloudinary)</label>
-              <input type="file" id="prodFile" class="form-control" accept="image/*" />
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-post me-2">POST</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/login</code>
+              </div>
+              <p class="small text-muted mb-2">Login user & mendapatkan JWT Token.</p>
+              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-login">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-login">
+                <div class="p-3 bg-light rounded border">
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-login" class="form-control font-monospace small mb-2" rows="3">{
+  "email": "user@mail.com",
+  "password": "123456"
+}</textarea>
+                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/auth/login', 'POST', null, 'req-login', 'res-login', true)">Kirim Request</button>
+                  <pre id="res-login">// Response akan tampil di sini</pre>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <button type="submit" class="btn btn-primary w-100">Simpan Produk</button>
-          </form>
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/users</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil semua daftar user.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-users">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-users">
+                <div class="p-3 bg-light rounded border">
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/auth/users', 'GET', null, null, 'res-get-users')">Kirim Request</button>
+                  <pre id="res-get-users">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil data detail 1 user berdasarkan User ID.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-user-id">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-user-id">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
+                    <input type="number" id="param-get-user-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID User" />
+                  </div>
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'GET', { id: 'param-get-user-id' }, null, 'res-get-user-id')">Kirim Request</button>
+                  <pre id="res-get-user-id">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-put me-2">PUT</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Mengubah data profil user berdasarkan ID.</p>
+              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-user">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-put-user">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
+                    <input type="number" id="param-put-user-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID User yang akan diubah" />
+                  </div>
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-put-user" class="form-control font-monospace small mb-2" rows="4">{
+  "fullName": "Budi Santoso Updated",
+  "phoneNumber": "089988776655",
+  "role": "customer"
+}</textarea>
+                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'PUT', { id: 'param-put-user-id' }, 'req-put-user', 'res-put-user')">Kirim Request</button>
+                  <pre id="res-put-user">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-delete me-2">DELETE</span>
+                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Menghapus user berdasarkan ID.</p>
+              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-user">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-delete-user">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
+                    <input type="number" id="param-delete-user-id" class="form-control form-control-sm" value="3" placeholder="Masukkan ID User yang akan dihapus" />
+                  </div>
+                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'DELETE', { id: 'param-delete-user-id' }, null, 'res-delete-user')">Kirim Request</button>
+                  <pre id="res-delete-user">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        
+        <div id="sec-products" class="mb-5">
+          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-box-seam-fill text-success"></i> 2. Products API (Katalog Sepatu)</h4>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/products</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil semua produk sepatu.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-products">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-products">
+                <div class="p-3 bg-light rounded border">
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/products', 'GET', null, null, 'res-get-products')">Kirim Request</button>
+                  <pre id="res-get-products">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil detail 1 produk berdasarkan Product ID.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-product-id">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-product-id">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
+                    <input type="number" id="param-get-product-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Produk" />
+                  </div>
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/products/{id}', 'GET', { id: 'param-get-product-id' }, null, 'res-get-product-id')">Kirim Request</button>
+                  <pre id="res-get-product-id">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-post me-2">POST</span>
+                <code class="fs-6 fw-bold text-dark">/api/products</code>
+              </div>
+              <p class="small text-muted mb-2">Menambah produk sepatu baru.</p>
+              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-post-products">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-post-products">
+                <div class="p-3 bg-light rounded border">
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-post-products" class="form-control font-monospace small mb-2" rows="6">{
+  "name": "Nah Project FlexKnit",
+  "description": "Sepatu rajit lokal ultra ringan.",
+  "price": 420000,
+  "sizeStock": { "39": 10, "40": 8, "41": 0 },
+  "imageUrl": "https://picsum.photos/400/400"
+}</textarea>
+                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/products', 'POST', null, 'req-post-products', 'res-post-products')">Kirim Request</button>
+                  <pre id="res-post-products">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-put me-2">PUT</span>
+                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Mengubah data produk sepatu berdasarkan Product ID.</p>
+              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-product">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-put-product">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
+                    <input type="number" id="param-put-product-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Produk yang diubah" />
+                  </div>
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-put-product" class="form-control font-monospace small mb-2" rows="6">{
+  "name": "Compass Gazette Low Modified",
+  "description": "Edits description modern.",
+  "price": 410000,
+  "sizeStock": { "39": 8, "40": 12, "41": 5 }
+}</textarea>
+                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/products/{id}', 'PUT', { id: 'param-put-product-id' }, 'req-put-product', 'res-put-product')">Kirim Request</button>
+                  <pre id="res-put-product">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-delete me-2">DELETE</span>
+                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Menghapus produk berdasarkan Product ID.</p>
+              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-product">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-delete-product">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
+                    <input type="number" id="param-delete-product-id" class="form-control form-control-sm" value="3" placeholder="Masukkan ID Produk yang dihapus" />
+                  </div>
+                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/products/{id}', 'DELETE', { id: 'param-delete-product-id' }, null, 'res-delete-product')">Kirim Request</button>
+                  <pre id="res-delete-product">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="sec-orders" class="mb-5">
+          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-cart-check-fill text-warning"></i> 3. Orders & GPS Location API</h4>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-post me-2">POST</span>
+                <code class="fs-6 fw-bold text-dark">/api/orders</code>
+              </div>
+              <p class="small text-muted mb-2">Membuat pesanan baru (Otomatis memotong stok per ukuran).</p>
+              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-post-orders">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-post-orders">
+                <div class="p-3 bg-light rounded border">
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-post-orders" class="form-control font-monospace small mb-2" rows="12">{
+  "totalAmount": 398000,
+  "shippingAddress": "Jl. MH Thamrin No. 1, Jakarta Pusat",
+  "addressNotes": "Patokan dekat minimarket",
+  "latitude": -6.1931,
+  "longitude": 106.8228,
+  "items": [
+    {
+      "productId": 1,
+      "size": "40",
+      "quantity": 1,
+      "price": 398000
+    }
+  ]
+}</textarea>
+                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/orders', 'POST', null, 'req-post-orders', 'res-post-orders')">Kirim Request</button>
+                  <pre id="res-post-orders">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get border-2 border-primary">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-primary">/api/orders/my-orders</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil riwayat pesanan milik user yang sedang login saat ini.</p>
+              <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#try-get-my-orders">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-my-orders">
+                <div class="p-3 bg-light rounded border">
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/my-orders', 'GET', null, null, 'res-get-my-orders')">Kirim Request</button>
+                  <pre id="res-get-my-orders">// Response pesanan user login akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/orders/admin</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil rekap seluruh pesanan masuk dari semua pelanggan.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-admin-orders">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-admin-orders">
+                <div class="p-3 bg-light rounded border">
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/admin', 'GET', null, null, 'res-get-admin-orders')">Kirim Request</button>
+                  <pre id="res-get-admin-orders">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-get me-2">GET</span>
+                <code class="fs-6 fw-bold text-dark">/api/orders/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Mengambil rincian detail 1 pesanan berdasarkan Order ID.</p>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-order-id">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-get-order-id">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
+                    <input type="number" id="param-get-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Pesanan" />
+                  </div>
+                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/{id}', 'GET', { id: 'param-get-order-id' }, null, 'res-get-order-id')">Kirim Request</button>
+                  <pre id="res-get-order-id">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-put me-2">PUT</span>
+                <code class="fs-6 fw-bold text-dark">/api/orders/:id/status</code>
+              </div>
+              <p class="small text-muted mb-2">Mengubah status pesanan berdasarkan Order ID (Opsi status: <code>dipesan</code>, <code>dibayar</code>, <code>dikirim</code>, <code>selesai</code>).</p>
+              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-order-status">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-put-order-status">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
+                    <input type="number" id="param-put-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Order yang diubah statusnya" />
+                  </div>
+                  <h6>Request Body (JSON Manual):</h6>
+                  <textarea id="req-put-order-status" class="form-control font-monospace small mb-2" rows="3">{
+  "status": "dibayar"
+}</textarea>
+                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/orders/{id}/status', 'PUT', { id: 'param-put-order-id' }, 'req-put-order-status', 'res-put-order-status')">Kirim Request</button>
+                  <pre id="res-put-order-status">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-delete me-2">DELETE</span>
+                <code class="fs-6 fw-bold text-dark">/api/orders/:id</code>
+              </div>
+              <p class="small text-muted mb-2">Menghapus pesanan berdasarkan Order ID.</p>
+              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-order">⚡ Try It Out</button>
+
+              <div class="collapse mt-3" id="try-delete-order">
+                <div class="p-3 bg-light rounded border">
+                  <div class="mb-2">
+                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
+                    <input type="number" id="param-delete-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Pesanan yang akan dihapus" />
+                  </div>
+                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/orders/{id}', 'DELETE', { id: 'param-delete-order-id' }, null, 'res-delete-order')">Kirim Request</button>
+                  <pre id="res-delete-order">// Response akan tampil di sini</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let productsList = [];
-    let usersList = [];
-    const productModal = new bootstrap.Modal(document.getElementById('productModal'));
-
-    async function loadProducts() {
-      const container = document.getElementById("products-list");
-      const orderProdSelect = document.getElementById("orderProductId");
-      container.innerHTML = '<div class="col-12 text-muted">Memuat...</div>';
-
-      try {
-        const res = await fetch("/api/products");
-        const json = await res.json();
-
-        if (json.success) {
-          productsList = json.data;
-          container.innerHTML = "";
-          orderProdSelect.innerHTML = "";
-
-          productsList.forEach(p => {
-            let sizeBadges = "";
-            const sizeObj = p.size_stock || {};
-            
-            for (const [size, stockCount] of Object.entries(sizeObj)) {
-              if (Number(stockCount) > 0) {
-                sizeBadges += `<span class="badge bg-success me-1 mb-1">Size ${size}: ${stockCount}</span>`;
-              } else {
-                sizeBadges += `<span class="badge bg-danger me-1 mb-1">Size ${size}: HABIS</span>`;
-              }
-            }
-
-            container.innerHTML += `
-              <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                  <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top">
-                  <div class="card-body d-flex flex-column">
-                    <h6 class="fw-bold mb-1">${p.name}</h6>
-                    <p class="text-muted small flex-grow-1 mb-2">${p.description || '-'}</p>
-                    <div class="mb-2">${sizeBadges}</div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <span class="fw-bold text-success">Rp ${Number(p.price).toLocaleString('id-ID')}</span>
-                      <span class="badge bg-secondary">Total: ${p.stock}</span>
-                    </div>
-                    <div class="d-flex gap-1">
-                      <button class="btn btn-warning btn-sm w-50" onclick="editProduct(${p.id})">✏️ Edit</button>
-                      <button class="btn btn-danger btn-sm w-50" onclick="deleteProduct(${p.id})">🗑️ Hapus</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-
-            orderProdSelect.innerHTML += `<option value="${p.id}">${p.name} - Rp ${Number(p.price).toLocaleString('id-ID')}</option>`;
-          });
-
-          updateSizeDropdown();
-        }
-      } catch (err) {
-        container.innerHTML = `<div class="col-12 alert alert-danger">Error: ${err.message}</div>`;
-      }
+    function clearToken() {
+      document.getElementById("globalJwtToken").value = "";
     }
 
-    function updateSizeDropdown() {
-      const selectedProdId = parseInt(document.getElementById("orderProductId").value);
-      const sizeSelect = document.getElementById("orderProductSize");
-      sizeSelect.innerHTML = "";
+    async function runApi(urlTemplate, method, pathParamsObj, reqBodyId, resContainerId, autoSaveToken = false) {
+      const resContainer = document.getElementById(resContainerId);
+      const token = document.getElementById("globalJwtToken").value.trim();
+      resContainer.innerText = "⏳ Mengirim Request...";
 
-      const product = productsList.find(p => p.id === selectedProdId);
-      if (product && product.size_stock) {
-        for (const [size, stockCount] of Object.entries(product.size_stock)) {
-          const isOut = Number(stockCount) <= 0;
-          sizeSelect.innerHTML += `
-            <option value="${size}" ${isOut ? 'disabled class="text-danger"' : ''}>
-              Ukuran ${size} ${isOut ? '(STOK HABIS)' : `(Stok: ${stockCount})`}
-            </option>
-          `;
-        }
-      }
-    }
-
-    function resetProductForm() {
-      document.getElementById("prodId").value = "";
-      document.getElementById("prodName").value = "";
-      document.getElementById("prodDesc").value = "";
-      document.getElementById("prodPrice").value = "";
-      document.getElementById("prodSizeStock").value = '{"39": 10, "40": 5, "41": 0, "42": 8}';
-      document.getElementById("prodFile").value = "";
-    }
-
-    function editProduct(id) {
-      const p = productsList.find(item => item.id === id);
-      if (!p) return;
-
-      document.getElementById("prodId").value = p.id;
-      document.getElementById("prodName").value = p.name;
-      document.getElementById("prodDesc").value = p.description;
-      document.getElementById("prodPrice").value = p.price;
-      document.getElementById("prodSizeStock").value = JSON.stringify(p.size_stock);
-      document.getElementById("prodFile").value = "";
-
-      productModal.show();
-    }
-
-    async function handleSaveProduct(e) {
-      e.preventDefault();
-      const id = document.getElementById("prodId").value;
-      const formData = new FormData();
-
-      formData.append("name", document.getElementById("prodName").value);
-      formData.append("description", document.getElementById("prodDesc").value);
-      formData.append("price", parseFloat(document.getElementById("prodPrice").value));
-      formData.append("sizeStock", document.getElementById("prodSizeStock").value);
-
-      const fileInput = document.getElementById("prodFile");
-      if (fileInput.files[0]) {
-        formData.append("imageFile", fileInput.files[0]);
-      }
-
-      const url = id ? `/api/products/${id}` : "/api/products";
-      const method = id ? "PUT" : "POST";
-
-      try {
-        const res = await fetch(url, { method, body: formData });
-        const json = await res.json();
-        if (json.success) {
-          alert(json.message);
-          productModal.hide();
-          loadProducts();
-        } else {
-          alert("Gagal: " + json.message);
-        }
-      } catch (err) {
-        alert("Error: " + err.message);
-      }
-    }
-
-    async function handleCreateOrder(e) {
-      e.preventDefault();
-      const selectedProdId = parseInt(document.getElementById("orderProductId").value);
-      const selectedSize = document.getElementById("orderProductSize").value;
-      const quantity = parseInt(document.getElementById("orderQuantity").value) || 1;
-      const product = productsList.find(p => p.id === selectedProdId);
-
-      const totalAmount = product ? product.price * quantity : 0;
-
-      const payload = {
-        userId: parseInt(document.getElementById("orderUserId").value),
-        totalAmount: totalAmount,
-        shippingAddress: document.getElementById("orderAddress").value,
-        addressNotes: document.getElementById("orderNotes").value,
-        latitude: parseFloat(document.getElementById("orderLat").value) || 0,
-        longitude: parseFloat(document.getElementById("orderLong").value) || 0,
-        items: [
-          {
-            productId: selectedProdId,
-            size: selectedSize,
-            quantity: quantity,
-            price: product ? product.price : 0
+      // Replace Path Parameters on URL dynamically
+      let finalUrl = urlTemplate;
+      if (pathParamsObj) {
+        for (const [key, elementId] of Object.entries(pathParamsObj)) {
+          const paramVal = document.getElementById(elementId).value;
+          if (!paramVal) {
+            resContainer.innerText = `❌ Error: Parameter path '${key}' wajib diisi!`;
+            return;
           }
-        ]
-      };
-
-      try {
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        alert(json.message);
-        if (json.success) {
-          document.getElementById("orderForm").reset();
-          loadProducts();
-          loadAdminOrders();
+          finalUrl = finalUrl.replace(`{${key}}`, paramVal);
         }
-      } catch (err) {
-        alert("Error: " + err.message);
       }
-    }
 
-    async function loadAdminOrders() {
-      const tbody = document.getElementById("orders-table-body");
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Memuat...</td></tr>';
+      let headers = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
-      try {
-        const res = await fetch("/api/orders/admin");
-        const json = await res.json();
+      let options = { method, headers };
 
-        if (json.success) {
-          tbody.innerHTML = "";
-          json.data.forEach(o => {
-            const statusBadges = {
-              "dipesan": "bg-secondary text-white",
-              "dibayar": "bg-info text-dark",
-              "dikirim": "bg-primary text-white",
-              "selesai": "bg-success text-white"
-            };
-
-            tbody.innerHTML += `
-              <tr>
-                <td>#${o.order_id}</td>
-                <td><strong>${o.customer_name}</strong></td>
-                <td>
-                  <div class="fw-bold">${o.product_name}</div>
-                  <span class="badge bg-light text-dark border">Size: ${o.ordered_size}</span>
-                  <span class="badge bg-dark">Qty: ${o.ordered_quantity || 1} pasang</span>
-                </td>
-                <td><small>${o.shipping_address}</small></td>
-                <td class="fw-bold text-success">Rp ${Number(o.total_amount).toLocaleString('id-ID')}</td>
-                <td>
-                  <select class="form-select form-select-sm fw-bold ${statusBadges[o.status] || ''}" onchange="updateStatus(${o.order_id}, this.value)">
-                    <option value="dipesan" ${o.status === 'dipesan' ? 'selected' : ''}>dipesan</option>
-                    <option value="dibayar" ${o.status === 'dibayar' ? 'selected' : ''}>dibayar</option>
-                    <option value="dikirim" ${o.status === 'dikirim' ? 'selected' : ''}>dikirim</option>
-                    <option value="selesai" ${o.status === 'selesai' ? 'selected' : ''}>selesai</option>
-                  </select>
-                </td>
-                <td><button class="btn btn-danger btn-sm py-0 px-2" onclick="deleteOrder(${o.order_id})">Hapus</button></td>
-              </tr>
-            `;
-          });
+      if (reqBodyId && (method === "POST" || method === "PUT")) {
+        try {
+          const rawText = document.getElementById(reqBodyId).value;
+          options.body = JSON.stringify(JSON.parse(rawText));
+        } catch (err) {
+          resContainer.innerText = "❌ JSON Request Body tidak valid: " + err.message;
+          return;
         }
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error: ${err.message}</td></tr>`;
       }
-    }
 
-    async function updateStatus(id, status) {
+      const startTime = performance.now();
+
       try {
-        const res = await fetch(`/api/orders/${id}/status`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status })
-        });
-        const json = await res.json();
-        alert(json.message);
-        loadAdminOrders();
+        const response = await fetch(finalUrl, options);
+        const duration = (performance.now() - startTime).toFixed(2);
+        const data = await response.json();
+
+        if (autoSaveToken && data.success && data.token) {
+          document.getElementById("globalJwtToken").value = data.token;
+        }
+
+        resContainer.innerText = `[${method}] ${finalUrl}\nHTTP Status: ${response.status} ${response.statusText} (${duration} ms)\n\n` + JSON.stringify(data, null, 2);
       } catch (err) {
-        alert("Error: " + err.message);
+        resContainer.innerText = "❌ Gagal Menghubungi API Server: " + err.message;
       }
     }
-
-    function getGPSLocation() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-          document.getElementById("orderLat").value = pos.coords.latitude;
-          document.getElementById("orderLong").value = pos.coords.longitude;
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-          const data = await res.json();
-          document.getElementById("orderAddress").value = data.display_name || `Lat: ${pos.coords.latitude}, Long: ${pos.coords.longitude}`;
-        });
-      }
-    }
-
-    async function loadUsers() {
-      const tbody = document.getElementById("users-table-body");
-      const orderUserSelect = document.getElementById("orderUserId");
-      const res = await fetch("/api/auth/users");
-      const json = await res.json();
-      if (json.success) {
-        usersList = json.data;
-        tbody.innerHTML = ""; orderUserSelect.innerHTML = "";
-        usersList.forEach(u => {
-          tbody.innerHTML += `<tr><td>${u.id}</td><td>${u.full_name}</td><td>${u.email}</td><td>${u.role}</td><td><button class="btn btn-danger btn-sm py-0" onclick="deleteUser(${u.id})">Hapus</button></td></tr>`;
-          orderUserSelect.innerHTML += `<option value="${u.id}">${u.full_name}</option>`;
-        });
-      }
-    }
-
-    async function handleRegister(e) {
-      e.preventDefault();
-      const payload = { fullName: document.getElementById("regName").value, email: document.getElementById("regEmail").value, phoneNumber: document.getElementById("regPhone").value, password: document.getElementById("regPassword").value, role: document.getElementById("regRole").value };
-      const res = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const json = await res.json(); alert(json.message); if (json.success) loadUsers();
-    }
-
-    async function deleteUser(id) { if (confirm("Hapus user?")) { await fetch(`/api/auth/users/${id}`, { method: "DELETE" }); loadUsers(); } }
-    async function deleteOrder(id) { if (confirm("Hapus pesanan?")) { await fetch(`/api/orders/${id}`, { method: "DELETE" }); loadAdminOrders(); } }
-
-    loadProducts();
-    loadUsers();
   </script>
 </body>
 </html>

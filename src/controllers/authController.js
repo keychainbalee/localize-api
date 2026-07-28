@@ -1,4 +1,13 @@
+import jwt from "jsonwebtoken";
 import { db } from "../config/db.js";
+
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role, fullName: user.full_name },
+    process.env.JWT_SECRET || "default_jwt_secret",
+    { expiresIn: "7d" }
+  );
+};
 
 export const register = async (req, res) => {
   const { fullName, email, phoneNumber, password, role } = req.body;
@@ -14,10 +23,14 @@ export const register = async (req, res) => {
       args: [fullName, email, phoneNumber, password, role || "customer"],
     });
 
+    const user = result.rows[0];
+    const token = generateToken(user);
+
     res.status(201).json({
       success: true,
       message: "Registrasi berhasil",
-      user: result.rows[0],
+      token,
+      user,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -40,7 +53,14 @@ export const login = async (req, res) => {
     const user = result.rows[0];
     delete user.password_hash;
 
-    res.json({ success: true, message: "Login berhasil", user });
+    const token = generateToken(user);
+
+    res.json({
+      success: true,
+      message: "Login berhasil",
+      token,
+      user,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
