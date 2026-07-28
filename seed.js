@@ -4,10 +4,9 @@ dotenv.config();
 import { db } from "./src/config/db.js";
 
 async function seed() {
-  console.log("⏳ Menghubungkan ke Turso dan membuat tabel...");
+  console.log("Menghubungkan ke Turso dan membuat tabel...");
 
   try {
-    // 1. Tabel Users
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +19,6 @@ async function seed() {
       );
     `);
 
-    // 2. Tabel Products
     await db.execute(`
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +31,6 @@ async function seed() {
       );
     `);
 
-    // 3. Tabel Orders (Sesuai Syarat Uji Kompetensi: GPS)
     await db.execute(`
       CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +45,6 @@ async function seed() {
       );
     `);
 
-    // 4. Tabel Order Items
     await db.execute(`
       CREATE TABLE IF NOT EXISTS order_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +57,6 @@ async function seed() {
       );
     `);
 
-    // Seed Data User
     await db.execute({
       sql: `INSERT OR IGNORE INTO users (id, full_name, email, phone_number, password_hash, role)
             VALUES (?, ?, ?, ?, ?, ?)`,
@@ -74,7 +69,6 @@ async function seed() {
       args: [2, 'Admin Localize', 'admin@localize.com', '089876543210', 'admin123', 'admin']
     });
 
-    // Seed Data Produk Sepatu
     await db.execute({
       sql: `INSERT OR IGNORE INTO products (id, name, description, price, stock, image_url)
             VALUES (?, ?, ?, ?, ?, ?)`,
