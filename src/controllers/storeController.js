@@ -1,12 +1,23 @@
+import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
+import { storeSettings } from "../config/schema.js";
 
 export const getStoreSettings = async (req, res) => {
   try {
-    const result = await db.execute("SELECT * FROM store_settings WHERE id = 1");
-    if (result.rows.length === 0) {
+    const result = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+    if (result.length === 0) {
       return res.status(404).json({ success: false, message: "Setting toko belum diinisialisasi" });
     }
-    res.json({ success: true, data: result.rows[0] });
+    const store = result[0];
+    const formatted = {
+      id: store.id,
+      name: store.name,
+      address: store.address,
+      latitude: store.latitude,
+      longitude: store.longitude,
+      shipping_fee_per_km: store.shippingFeePerKm
+    };
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -24,25 +35,26 @@ export const updateStoreSettings = async (req, res) => {
   }
 
   try {
-    const checkSettings = await db.execute("SELECT * FROM store_settings WHERE id = 1");
-    if (checkSettings.rows.length === 0) {
-      await db.execute({
-        sql: "INSERT INTO store_settings (id, name, address, latitude, longitude, shipping_fee_per_km) VALUES (1, ?, ?, ?, ?, ?)",
-        args: [name || "Toko Utama", address, latitude, longitude, shippingFeePerKm !== undefined ? shippingFeePerKm : 2000]
+    const checkSettings = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+    if (checkSettings.length === 0) {
+      await db.insert(storeSettings).values({
+        id: 1,
+        name: name || "Toko Utama",
+        address,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        shippingFeePerKm: shippingFeePerKm !== undefined ? Number(shippingFeePerKm) : 2000
       });
     } else {
-      await db.execute({
-        sql: `UPDATE store_settings 
-              SET name = ?, address = ?, latitude = ?, longitude = ?, shipping_fee_per_km = ? 
-              WHERE id = 1`,
-        args: [
-          name || checkSettings.rows[0].name,
+      await db.update(storeSettings)
+        .set({
+          name: name || checkSettings[0].name,
           address,
-          latitude,
-          longitude,
-          shippingFeePerKm !== undefined ? shippingFeePerKm : checkSettings.rows[0].shipping_fee_per_km
-        ]
-      });
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          shippingFeePerKm: shippingFeePerKm !== undefined ? Number(shippingFeePerKm) : checkSettings[0].shippingFeePerKm
+        })
+        .where(eq(storeSettings.id, 1));
     }
 
     res.json({ success: true, message: "Pengaturan lokasi penjual berhasil diperbarui" });

@@ -1,4 +1,6 @@
+import { eq, and, desc } from "drizzle-orm";
 import { db } from "../config/db.js";
+import { orders, orderItems, products, userLocations, storeSettings, users } from "../config/schema.js";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius bumi dalam km
@@ -19,15 +21,16 @@ export const createOrder = async (req, res) => {
   let { locationId, totalAmount, shippingAddress, addressNotes, latitude, longitude, items } = req.body;
 
   if (locationId) {
-    const locResult = await db.execute({
-      sql: "SELECT * FROM user_locations WHERE id = ? AND user_id = ?",
-      args: [locationId, userId],
-    });
+    const locResult = await db.select().from(userLocations)
+      .where(and(
+        eq(userLocations.id, Number(locationId)),
+        eq(userLocations.userId, Number(userId))
+      ));
 
-    if (locResult.rows.length > 0) {
-      const loc = locResult.rows[0];
-      shippingAddress = loc.address_text;
-      addressNotes = loc.address_notes;
+    if (locResult.length > 0) {
+      const loc = locResult[0];
+      shippingAddress = loc.addressText;
+      addressNotes = loc.addressNotes;
       latitude = loc.latitude;
       longitude = loc.longitude;
     }
@@ -45,17 +48,14 @@ export const createOrder = async (req, res) => {
     
     for (const item of items) {
       const qty = Number(item.quantity) || 1;
-      const prodResult = await db.execute({
-        sql: "SELECT * FROM products WHERE id = ?",
-        args: [item.productId],
-      });
+      const prodResult = await db.select().from(products).where(eq(products.id, Number(item.productId)));
 
-      if (prodResult.rows.length === 0) {
+      if (prodResult.length === 0) {
         return res.status(404).json({ success: false, message: `Produk ID ${item.productId} tidak ditemukan` });
       }
 
-      const product = prodResult.rows[0];
-      const sizeStockObj = JSON.parse(product.size_stock || "{}");
+      const product = prodResult[0];
+      const sizeStockObj = JSON.parse(product.sizeStock || "{}");
       const currentSizeStock = Number(sizeStockObj[item.size] || 0);
 
       if (currentSizeStock < qty) {
@@ -72,56 +72,53 @@ export const createOrder = async (req, res) => {
     let shippingFee = 0;
 
     if (latitude && longitude && Number(latitude) !== 0 && Number(longitude) !== 0) {
-      const storeResult = await db.execute("SELECT * FROM store_settings WHERE id = 1");
-      if (storeResult.rows.length > 0) {
-        const store = storeResult.rows[0];
-        distance = calculateDistance(latitude, longitude, store.latitude, store.longitude);
-        shippingFee = distance * store.shipping_fee_per_km;
+      const storeResult = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+      if (storeResult.length > 0) {
+        const store = storeResult[0];
+        distance = calculateDistance(Number(latitude), Number(longitude), store.latitude, store.longitude);
+        shippingFee = distance * store.shippingFeePerKm;
       }
     }
 
     const finalTotalAmount = itemsSubtotal + shippingFee;
 
-    const orderResult = await db.execute({
-      sql: `INSERT INTO orders (user_id, total_amount, shipping_address, address_notes, latitude, longitude, distance, shipping_fee, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dipesan') RETURNING id`,
-      args: [
-        userId, 
-        finalTotalAmount, 
-        shippingAddress, 
-        addressNotes || "", 
-        latitude || 0, 
-        longitude || 0,
-        distance,
-        shippingFee
-      ],
-    });
+    const orderResult = await db.insert(orders).values({
+      userId: Number(userId),
+      totalAmount: finalTotalAmount,
+      shippingAddress,
+      addressNotes: addressNotes || "",
+      latitude: latitude ? Number(latitude) : 0,
+      longitude: longitude ? Number(longitude) : 0,
+      distance,
+      shippingFee
+    }).returning();
 
-    const orderId = orderResult.rows[0].id;
+    const orderId = orderResult[0].id;
 
     for (const item of items) {
       const qty = Number(item.quantity) || 1;
 
-      await db.execute({
-        sql: `INSERT INTO order_items (order_id, product_id, size, quantity, price_at_purchase) 
-              VALUES (?, ?, ?, ?, ?)`,
-        args: [orderId, item.productId, item.size, qty, item.price],
+      await db.insert(orderItems).values({
+        orderId,
+        productId: Number(item.productId),
+        size: item.size,
+        quantity: qty,
+        priceAtPurchase: Number(item.price)
       });
 
-      const prodResult = await db.execute({
-        sql: "SELECT * FROM products WHERE id = ?",
-        args: [item.productId],
-      });
-      const product = prodResult.rows[0];
-      const sizeStockObj = JSON.parse(product.size_stock || "{}");
+      const prodResult = await db.select().from(products).where(eq(products.id, Number(item.productId)));
+      const product = prodResult[0];
+      const sizeStockObj = JSON.parse(product.sizeStock || "{}");
 
       sizeStockObj[item.size] = Number(sizeStockObj[item.size]) - qty;
       const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
 
-      await db.execute({
-        sql: "UPDATE products SET size_stock = ?, stock = ? WHERE id = ?",
-        args: [JSON.stringify(sizeStockObj), newTotalStock, item.productId],
-      });
+      await db.update(products)
+        .set({
+          sizeStock: JSON.stringify(sizeStockObj),
+          stock: newTotalStock
+        })
+        .where(eq(products.id, Number(item.productId)));
     }
 
     res.status(201).json({
@@ -137,100 +134,139 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// [READ MY ORDERS] Mengambil Riwayat Pesanan Milik User Login
 export const getMyOrders = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const result = await db.execute({
-      sql: `
-        SELECT 
-          o.id AS order_id,
-          o.total_amount,
-          o.shipping_address,
-          o.address_notes,
-          o.latitude,
-          o.longitude,
-          o.distance,
-          o.shipping_fee,
-          o.status,
-          o.created_at,
-          oi.size AS ordered_size,
-          oi.quantity AS ordered_quantity,
-          p.name AS product_name,
-          p.image_url AS product_image
-        FROM orders o
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN products p ON oi.product_id = p.id
-        WHERE o.user_id = ?
-        ORDER BY o.created_at DESC
-      `,
-      args: [userId],
-    });
+    const result = await db.select({
+      order_id: orders.id,
+      total_amount: orders.totalAmount,
+      shipping_address: orders.shippingAddress,
+      address_notes: orders.addressNotes,
+      latitude: orders.latitude,
+      longitude: orders.longitude,
+      distance: orders.distance,
+      shipping_fee: orders.shippingFee,
+      status: orders.status,
+      created_at: orders.createdAt,
+      ordered_size: orderItems.size,
+      ordered_quantity: orderItems.quantity,
+      product_name: products.name,
+      product_image: products.imageUrl
+    })
+    .from(orders)
+    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .where(eq(orders.userId, Number(userId)))
+    .orderBy(desc(orders.createdAt));
 
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// [READ ALL ADMIN] Mengambil Semua Pesanan Pelanggan
 export const getAdminOrders = async (req, res) => {
   try {
-    const result = await db.execute(`
-      SELECT 
-        o.id AS order_id,
-        u.full_name AS customer_name,
-        u.phone_number,
-        o.total_amount,
-        o.shipping_address,
-        o.address_notes,
-        o.latitude,
-        o.longitude,
-        o.distance,
-        o.shipping_fee,
-        o.status,
-        o.created_at,
-        oi.size AS ordered_size,
-        oi.quantity AS ordered_quantity,
-        p.name AS product_name
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
-      ORDER BY o.created_at DESC
-    `);
+    const result = await db.select({
+      order_id: orders.id,
+      customer_name: users.fullName,
+      phone_number: users.phoneNumber,
+      total_amount: orders.totalAmount,
+      shipping_address: orders.shippingAddress,
+      address_notes: orders.addressNotes,
+      latitude: orders.latitude,
+      longitude: orders.longitude,
+      distance: orders.distance,
+      shipping_fee: orders.shippingFee,
+      status: orders.status,
+      created_at: orders.createdAt,
+      ordered_size: orderItems.size,
+      ordered_quantity: orderItems.quantity,
+      product_name: products.name
+    })
+    .from(orders)
+    .join(users, eq(orders.userId, users.id))
+    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .orderBy(desc(orders.createdAt));
 
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// [READ ONE] Mengambil Detail 1 Pesanan Berdasarkan ID
 export const getOrderById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const orderResult = await db.execute({
-      sql: `SELECT o.*, u.full_name, u.phone_number FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?`,
-      args: [id],
-    });
+    const orderResult = await db.select({
+      id: orders.id,
+      user_id: orders.userId,
+      total_amount: orders.totalAmount,
+      shipping_address: orders.shippingAddress,
+      address_notes: orders.addressNotes,
+      latitude: orders.latitude,
+      longitude: orders.longitude,
+      distance: orders.distance,
+      shipping_fee: orders.shippingFee,
+      status: orders.status,
+      created_at: orders.createdAt,
+      full_name: users.fullName,
+      phone_number: users.phoneNumber
+    })
+    .from(orders)
+    .join(users, eq(orders.userId, users.id))
+    .where(eq(orders.id, Number(id)));
 
-    if (orderResult.rows.length === 0) {
+    if (orderResult.length === 0) {
       return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan" });
     }
 
-    const itemsResult = await db.execute({
-      sql: `SELECT oi.*, p.name AS product_name, p.image_url FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?`,
-      args: [id],
-    });
+    const itemsResult = await db.select({
+      id: orderItems.id,
+      order_id: orderItems.orderId,
+      product_id: orderItems.productId,
+      size: orderItems.size,
+      quantity: orderItems.quantity,
+      price_at_purchase: orderItems.priceAtPurchase,
+      product_name: products.name,
+      image_url: products.imageUrl
+    })
+    .from(orderItems)
+    .join(products, eq(orderItems.productId, products.id))
+    .where(eq(orderItems.orderId, Number(id)));
 
+    const formattedItems = itemsResult.map(item => ({
+      id: item.id,
+      order_id: item.order_id,
+      product_id: item.product_id,
+      size: item.size,
+      quantity: item.quantity,
+      price_at_purchase: item.price_at_purchase,
+      product_name: item.product_name,
+      image_url: item.image_url
+    }));
+
+    const orderData = orderResult[0];
     res.json({
       success: true,
       data: {
-        ...orderResult.rows[0],
-        items: itemsResult.rows,
+        id: orderData.id,
+        user_id: orderData.user_id,
+        total_amount: orderData.total_amount,
+        shipping_address: orderData.shipping_address,
+        address_notes: orderData.address_notes,
+        latitude: orderData.latitude,
+        longitude: orderData.longitude,
+        distance: orderData.distance,
+        shipping_fee: orderData.shipping_fee,
+        status: orderData.status,
+        created_at: orderData.created_at,
+        full_name: orderData.full_name,
+        phone_number: orderData.phone_number,
+        items: formattedItems
       },
     });
   } catch (err) {
@@ -238,7 +274,6 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-// [UPDATE STATUS] Mengubah Status Pesanan
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -252,14 +287,9 @@ export const updateOrderStatus = async (req, res) => {
   }
 
   try {
-    const result = await db.execute({
-      sql: "UPDATE orders SET status = ? WHERE id = ?",
-      args: [status, id],
-    });
-
-    if (result.rowsAffected === 0) {
-      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan" });
-    }
+    const result = await db.update(orders)
+      .set({ status })
+      .where(eq(orders.id, Number(id)));
 
     res.json({ success: true, message: `Status pesanan #${id} diubah menjadi '${status}'` });
   } catch (err) {
@@ -267,17 +297,12 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// [DELETE ORDER] Menghapus Pesanan
 export const deleteOrder = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await db.execute({ sql: "DELETE FROM order_items WHERE order_id = ?", args: [id] });
-    const result = await db.execute({ sql: "DELETE FROM orders WHERE id = ?", args: [id] });
-
-    if (result.rowsAffected === 0) {
-      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan" });
-    }
+    await db.delete(orderItems).where(eq(orderItems.orderId, Number(id)));
+    const result = await db.delete(orders).where(eq(orders.id, Number(id)));
 
     res.json({ success: true, message: "Pesanan berhasil dihapus" });
   } catch (err) {
