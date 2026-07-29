@@ -1,10 +1,39 @@
 import { db } from "../config/db.js";
 
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius bumi dalam km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 export const createOrder = async (req, res) => {
   const userId = req.user ? req.user.id : req.body.userId;
-  const { totalAmount, shippingAddress, addressNotes, latitude, longitude, items } = req.body;
+  let { locationId, totalAmount, shippingAddress, addressNotes, latitude, longitude, items } = req.body;
 
-  if (!userId || !totalAmount || !shippingAddress || !items || items.length === 0) {
+  if (locationId) {
+    const locResult = await db.execute({
+      sql: "SELECT * FROM user_locations WHERE id = ? AND user_id = ?",
+      args: [locationId, userId],
+    });
+
+    if (locResult.rows.length > 0) {
+      const loc = locResult.rows[0];
+      shippingAddress = loc.address_text;
+      addressNotes = loc.address_notes;
+      latitude = loc.latitude;
+      longitude = loc.longitude;
+    }
+  }
+
+  if (!userId || !shippingAddress || !items || items.length === 0) {
     return res.status(400).json({ 
       success: false, 
       message: "Data pemesanan, alamat, dan item sepatu wajib diisi" 
@@ -12,6 +41,8 @@ export const createOrder = async (req, res) => {
   }
 
   try {
+    let itemsSubtotal = 0;
+    
     for (const item of items) {
       const qty = Number(item.quantity) || 1;
       const prodResult = await db.execute({
@@ -33,12 +64,37 @@ export const createOrder = async (req, res) => {
           message: `Stok untuk ${product.name} ukuran ${item.size} tidak mencukupi (Diminta: ${qty}, Tersisa: ${currentSizeStock})`
         });
       }
+      
+      itemsSubtotal += product.price * qty;
     }
 
+    let distance = 0;
+    let shippingFee = 0;
+
+    if (latitude && longitude && Number(latitude) !== 0 && Number(longitude) !== 0) {
+      const storeResult = await db.execute("SELECT * FROM store_settings WHERE id = 1");
+      if (storeResult.rows.length > 0) {
+        const store = storeResult.rows[0];
+        distance = calculateDistance(latitude, longitude, store.latitude, store.longitude);
+        shippingFee = distance * store.shipping_fee_per_km;
+      }
+    }
+
+    const finalTotalAmount = itemsSubtotal + shippingFee;
+
     const orderResult = await db.execute({
-      sql: `INSERT INTO orders (user_id, total_amount, shipping_address, address_notes, latitude, longitude, status) 
-            VALUES (?, ?, ?, ?, ?, ?, 'dipesan') RETURNING id`,
-      args: [userId, totalAmount, shippingAddress, addressNotes || "", latitude || 0, longitude || 0],
+      sql: `INSERT INTO orders (user_id, total_amount, shipping_address, address_notes, latitude, longitude, distance, shipping_fee, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'dipesan') RETURNING id`,
+      args: [
+        userId, 
+        finalTotalAmount, 
+        shippingAddress, 
+        addressNotes || "", 
+        latitude || 0, 
+        longitude || 0,
+        distance,
+        shippingFee
+      ],
     });
 
     const orderId = orderResult.rows[0].id;
@@ -70,14 +126,18 @@ export const createOrder = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Pesanan berhasil dibuat & stok otomatis berkurang!",
+      message: "Pesanan berhasil dibuat!",
       orderId,
+      distance: Number(distance.toFixed(2)),
+      shippingFee: Math.round(shippingFee),
+      totalAmount: finalTotalAmount
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// [READ MY ORDERS] Mengambil Riwayat Pesanan Milik User Login
 export const getMyOrders = async (req, res) => {
   const userId = req.user.id;
 
@@ -91,6 +151,8 @@ export const getMyOrders = async (req, res) => {
           o.address_notes,
           o.latitude,
           o.longitude,
+          o.distance,
+          o.shipping_fee,
           o.status,
           o.created_at,
           oi.size AS ordered_size,
@@ -112,6 +174,7 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
+// [READ ALL ADMIN] Mengambil Semua Pesanan Pelanggan
 export const getAdminOrders = async (req, res) => {
   try {
     const result = await db.execute(`
@@ -124,6 +187,8 @@ export const getAdminOrders = async (req, res) => {
         o.address_notes,
         o.latitude,
         o.longitude,
+        o.distance,
+        o.shipping_fee,
         o.status,
         o.created_at,
         oi.size AS ordered_size,
@@ -142,6 +207,7 @@ export const getAdminOrders = async (req, res) => {
   }
 };
 
+// [READ ONE] Mengambil Detail 1 Pesanan Berdasarkan ID
 export const getOrderById = async (req, res) => {
   const { id } = req.params;
 
@@ -172,6 +238,7 @@ export const getOrderById = async (req, res) => {
   }
 };
 
+// [UPDATE STATUS] Mengubah Status Pesanan
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -200,6 +267,7 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
+// [DELETE ORDER] Menghapus Pesanan
 export const deleteOrder = async (req, res) => {
   const { id } = req.params;
 

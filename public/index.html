@@ -3,521 +3,1278 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Localize REST API - Manual Parameter Docs & Playground</title>
+  <title>Localize Developer Portal & API Explorer</title>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <style>
-    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .badge-get { background-color: #0d6efd; color: white; width: 75px; }
-    .badge-post { background-color: #198754; color: white; width: 75px; }
-    .badge-put { background-color: #fd7e14; color: white; width: 75px; }
-    .badge-delete { background-color: #dc3545; color: white; width: 75px; }
-    .endpoint-card { border-left: 5px solid #6c757d; }
-    .endpoint-get { border-left-color: #0d6efd; }
-    .endpoint-post { border-left-color: #198754; }
-    .endpoint-put { border-left-color: #fd7e14; }
-    .endpoint-delete { border-left-color: #dc3545; }
-    pre { background-color: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-size: 13px; max-height: 250px; overflow-y: auto; }
+    :root {
+      --bg-main: #0b0f19;
+      --bg-sidebar: #0f172a;
+      --bg-panel: rgba(17, 24, 39, 0.6);
+      --bg-terminal: #070b13;
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.35);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.35);
+      --danger: #f43f5e;
+      --danger-glow: rgba(244, 63, 94, 0.35);
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .main-wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Left Sidebar Navigation */
+    .sidebar-panel {
+      width: 320px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-scroll {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px 15px;
+    }
+
+    /* Content Area */
+    .content-panel {
+      margin-left: 320px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .top-header {
+      height: 75px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .pane-grid {
+      display: flex;
+      flex-grow: 1;
+      min-height: calc(100vh - 75px);
+    }
+
+    /* Middle column: Docs Details */
+    .docs-pane {
+      width: 55%;
+      padding: 40px 30px;
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+    }
+
+    /* Right column: Playground & Terminal */
+    .playground-pane {
+      width: 45%;
+      background-color: rgba(9, 13, 24, 0.4);
+      padding: 40px 30px;
+      overflow-y: auto;
+    }
+
+    /* Menu Items */
+    .menu-section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      margin-top: 20px;
+      padding-left: 10px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    .menu-item.active {
+      background-color: rgba(99, 102, 241, 0.15);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Badges */
+    .badge-method {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 10px;
+      width: 55px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .method-get { background-color: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .method-post { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .method-put { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .method-delete { background-color: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* Forms & Inputs */
+    .glass-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .input-dark {
+      background-color: rgba(9, 13, 24, 0.7);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .input-dark:focus {
+      background-color: #090d18;
+      border-color: var(--primary);
+      box-shadow: 0 0 8px var(--primary-glow);
+      color: var(--text-main);
+    }
+
+    .input-dark::placeholder {
+      color: #4b5563;
+    }
+
+    .json-textarea {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      background-color: var(--bg-terminal);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    /* Terminal Console */
+    .terminal-window {
+      background-color: var(--bg-terminal);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .terminal-header {
+      background-color: rgba(15, 23, 42, 0.8);
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .terminal-content {
+      padding: 16px;
+      font-size: 13px;
+      color: #38bdf8;
+      max-height: 450px;
+      overflow-y: auto;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .btn-action {
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      color: #fff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .btn-action-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    }
+
+    .table-params th {
+      background-color: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .table-params td {
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .param-meta {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .param-name {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .param-type {
+      color: #818cf8;
+      font-size: 0.75rem;
+    }
+
+    .param-required {
+      color: var(--danger);
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
 
-  
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="#">
-        👟 Localize <span class="badge bg-primary fs-6 ms-1">API Docs (Manual Params)</span>
-      </a>
-    </div>
-  </nav>
-
-  <div class="container my-4">
+  <div class="main-wrapper">
     
-    <div class="card shadow-sm border-0 mb-4 bg-dark text-white p-3">
-      <h6 class="fw-bold mb-2 text-warning"><i class="bi bi-key-fill"></i> JWT Authorization Token (Global Header)</h6>
-      <div class="input-group">
-        <span class="input-group-text bg-secondary text-white border-0">Bearer Token:</span>
-        <input type="text" id="globalJwtToken" class="form-control font-monospace text-success bg-black border-secondary" placeholder="Lakukan Login/Register untuk auto-fill atau tempel JWT Token manual di sini..." />
-        <button class="btn btn-outline-warning" onclick="clearToken()">Reset Token</button>
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar-panel">
+      <div class="sidebar-header">
+        <h4 class="fw-bold mb-1 d-flex align-items-center text-white">
+          <span class="me-2">⚡</span> Localize API
+        </h4>
+        <span class="small text-muted">Interactive Explorer Portal</span>
       </div>
-      <small class="text-muted mt-1">Token ini otomatis dikirimkan pada header <code>Authorization: Bearer &lt;token&gt;</code> untuk endpoint terproteksi.</small>
+      
+      <div class="sidebar-scroll">
+        <div class="menu-section-title">Overview</div>
+        <button class="menu-item active" onclick="selectEndpoint('overview', this)">
+          <span class="badge-method method-get">INFO</span> Pengantar & Panduan
+        </button>
+
+        <div class="menu-section-title">auth & users</div>
+        <div id="menu-auth"></div>
+
+        <div class="menu-section-title">products</div>
+        <div id="menu-products"></div>
+
+        <div class="menu-section-title">orders</div>
+        <div id="menu-orders"></div>
+
+        <div class="menu-section-title">locations</div>
+        <div id="menu-locations"></div>
+
+        <div class="menu-section-title">store / penjual</div>
+        <div id="menu-store"></div>
+      </div>
     </div>
 
-    <div class="row">
-      <div class="col-12">
-
+    <!-- MAIN RIGHT CONTENT WRAPPER -->
+    <div class="content-panel">
+      
+      <!-- TOP STICKY HEADER -->
+      <div class="top-header">
+        <div class="d-flex align-items-center">
+          <span class="badge bg-dark border border-secondary text-muted px-2 py-1 small">
+            Base URL: <span class="text-white font-monospace">http://localhost:3000</span>
+          </span>
+        </div>
         
-        <div id="sec-auth" class="mb-5">
-          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-people-fill text-primary"></i> 1. Authentication & Users (CRUD)</h4>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-post me-2">POST</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/register</code>
-              </div>
-              <p class="small text-muted mb-2">Pendaftaran user baru.</p>
-              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-register">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-register">
-                <div class="p-3 bg-light rounded border">
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-register" class="form-control font-monospace small mb-2" rows="5">{
-  "fullName": "Siti Rahma",
-  "email": "siti@mail.com",
-  "phoneNumber": "081299887766",
-  "password": "password123",
-  "role": "customer"
-}</textarea>
-                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/auth/register', 'POST', null, 'req-register', 'res-register', true)">Kirim Request</button>
-                  <pre id="res-register">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-post me-2">POST</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/login</code>
-              </div>
-              <p class="small text-muted mb-2">Login user & mendapatkan JWT Token.</p>
-              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-login">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-login">
-                <div class="p-3 bg-light rounded border">
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-login" class="form-control font-monospace small mb-2" rows="3">{
-  "email": "user@mail.com",
-  "password": "123456"
-}</textarea>
-                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/auth/login', 'POST', null, 'req-login', 'res-login', true)">Kirim Request</button>
-                  <pre id="res-login">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/users</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil semua daftar user.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-users">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-users">
-                <div class="p-3 bg-light rounded border">
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/auth/users', 'GET', null, null, 'res-get-users')">Kirim Request</button>
-                  <pre id="res-get-users">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil data detail 1 user berdasarkan User ID.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-user-id">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-user-id">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
-                    <input type="number" id="param-get-user-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID User" />
-                  </div>
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'GET', { id: 'param-get-user-id' }, null, 'res-get-user-id')">Kirim Request</button>
-                  <pre id="res-get-user-id">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-put me-2">PUT</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Mengubah data profil user berdasarkan ID.</p>
-              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-user">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-put-user">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
-                    <input type="number" id="param-put-user-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID User yang akan diubah" />
-                  </div>
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-put-user" class="form-control font-monospace small mb-2" rows="4">{
-  "fullName": "Budi Santoso Updated",
-  "phoneNumber": "089988776655",
-  "role": "customer"
-}</textarea>
-                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'PUT', { id: 'param-put-user-id' }, 'req-put-user', 'res-put-user')">Kirim Request</button>
-                  <pre id="res-put-user">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-delete me-2">DELETE</span>
-                <code class="fs-6 fw-bold text-dark">/api/auth/users/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Menghapus user berdasarkan ID.</p>
-              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-user">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-delete-user">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: User ID</label>
-                    <input type="number" id="param-delete-user-id" class="form-control form-control-sm" value="3" placeholder="Masukkan ID User yang akan dihapus" />
-                  </div>
-                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/auth/users/{id}', 'DELETE', { id: 'param-delete-user-id' }, null, 'res-delete-user')">Kirim Request</button>
-                  <pre id="res-delete-user">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
+        <!-- Global Authorization Token Box -->
+        <div class="d-flex align-items-center gap-2" style="width: 450px;">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-dark border-secondary text-muted font-monospace"><i class="bi bi-key-fill text-warning me-1"></i> Bearer</span>
+            <input type="text" id="globalJwtToken" class="form-control input-dark font-monospace text-success border-secondary" placeholder="JWT Token..." oninput="onTokenManualChange()" />
+            <button class="btn btn-outline-danger" onclick="clearToken()">Reset</button>
           </div>
         </div>
+      </div>
 
+      <!-- WORKSPACE PANELS -->
+      <div class="pane-grid">
         
-        <div id="sec-products" class="mb-5">
-          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-box-seam-fill text-success"></i> 2. Products API (Katalog Sepatu)</h4>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/products</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil semua produk sepatu.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-products">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-products">
-                <div class="p-3 bg-light rounded border">
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/products', 'GET', null, null, 'res-get-products')">Kirim Request</button>
-                  <pre id="res-get-products">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil detail 1 produk berdasarkan Product ID.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-product-id">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-product-id">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
-                    <input type="number" id="param-get-product-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Produk" />
-                  </div>
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/products/{id}', 'GET', { id: 'param-get-product-id' }, null, 'res-get-product-id')">Kirim Request</button>
-                  <pre id="res-get-product-id">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-post me-2">POST</span>
-                <code class="fs-6 fw-bold text-dark">/api/products</code>
-              </div>
-              <p class="small text-muted mb-2">Menambah produk sepatu baru.</p>
-              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-post-products">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-post-products">
-                <div class="p-3 bg-light rounded border">
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-post-products" class="form-control font-monospace small mb-2" rows="6">{
-  "name": "Nah Project FlexKnit",
-  "description": "Sepatu rajit lokal ultra ringan.",
-  "price": 420000,
-  "sizeStock": { "39": 10, "40": 8, "41": 0 },
-  "imageUrl": "https://picsum.photos/400/400"
-}</textarea>
-                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/products', 'POST', null, 'req-post-products', 'res-post-products')">Kirim Request</button>
-                  <pre id="res-post-products">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-put me-2">PUT</span>
-                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Mengubah data produk sepatu berdasarkan Product ID.</p>
-              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-product">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-put-product">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
-                    <input type="number" id="param-put-product-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Produk yang diubah" />
-                  </div>
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-put-product" class="form-control font-monospace small mb-2" rows="6">{
-  "name": "Compass Gazette Low Modified",
-  "description": "Edits description modern.",
-  "price": 410000,
-  "sizeStock": { "39": 8, "40": 12, "41": 5 }
-}</textarea>
-                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/products/{id}', 'PUT', { id: 'param-put-product-id' }, 'req-put-product', 'res-put-product')">Kirim Request</button>
-                  <pre id="res-put-product">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-delete me-2">DELETE</span>
-                <code class="fs-6 fw-bold text-dark">/api/products/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Menghapus produk berdasarkan Product ID.</p>
-              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-product">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-delete-product">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Product ID</label>
-                    <input type="number" id="param-delete-product-id" class="form-control form-control-sm" value="3" placeholder="Masukkan ID Produk yang dihapus" />
-                  </div>
-                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/products/{id}', 'DELETE', { id: 'param-delete-product-id' }, null, 'res-delete-product')">Kirim Request</button>
-                  <pre id="res-delete-product">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- MIDDLE: DOCS COLUMN -->
+        <div class="docs-pane" id="docs-column">
+          <!-- Rendered dynamically -->
         </div>
 
-        
-        <div id="sec-orders" class="mb-5">
-          <h4 class="fw-bold border-bottom pb-2 text-dark"><i class="bi bi-cart-check-fill text-warning"></i> 3. Orders & GPS Location API</h4>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-post">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-post me-2">POST</span>
-                <code class="fs-6 fw-bold text-dark">/api/orders</code>
-              </div>
-              <p class="small text-muted mb-2">Membuat pesanan baru (Otomatis memotong stok per ukuran).</p>
-              <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#try-post-orders">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-post-orders">
-                <div class="p-3 bg-light rounded border">
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-post-orders" class="form-control font-monospace small mb-2" rows="12">{
-  "totalAmount": 398000,
-  "shippingAddress": "Jl. MH Thamrin No. 1, Jakarta Pusat",
-  "addressNotes": "Patokan dekat minimarket",
-  "latitude": -6.1931,
-  "longitude": 106.8228,
-  "items": [
-    {
-      "productId": 1,
-      "size": "40",
-      "quantity": 1,
-      "price": 398000
-    }
-  ]
-}</textarea>
-                  <button class="btn btn-success btn-sm mb-2" onclick="runApi('/api/orders', 'POST', null, 'req-post-orders', 'res-post-orders')">Kirim Request</button>
-                  <pre id="res-post-orders">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get border-2 border-primary">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-primary">/api/orders/my-orders</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil riwayat pesanan milik user yang sedang login saat ini.</p>
-              <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#try-get-my-orders">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-my-orders">
-                <div class="p-3 bg-light rounded border">
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/my-orders', 'GET', null, null, 'res-get-my-orders')">Kirim Request</button>
-                  <pre id="res-get-my-orders">// Response pesanan user login akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/orders/admin</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil rekap seluruh pesanan masuk dari semua pelanggan.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-admin-orders">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-admin-orders">
-                <div class="p-3 bg-light rounded border">
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/admin', 'GET', null, null, 'res-get-admin-orders')">Kirim Request</button>
-                  <pre id="res-get-admin-orders">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-get">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-get me-2">GET</span>
-                <code class="fs-6 fw-bold text-dark">/api/orders/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Mengambil rincian detail 1 pesanan berdasarkan Order ID.</p>
-              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#try-get-order-id">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-get-order-id">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
-                    <input type="number" id="param-get-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Pesanan" />
-                  </div>
-                  <button class="btn btn-primary btn-sm mb-2" onclick="runApi('/api/orders/{id}', 'GET', { id: 'param-get-order-id' }, null, 'res-get-order-id')">Kirim Request</button>
-                  <pre id="res-get-order-id">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-put">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-put me-2">PUT</span>
-                <code class="fs-6 fw-bold text-dark">/api/orders/:id/status</code>
-              </div>
-              <p class="small text-muted mb-2">Mengubah status pesanan berdasarkan Order ID (Opsi status: <code>dipesan</code>, <code>dibayar</code>, <code>dikirim</code>, <code>selesai</code>).</p>
-              <button class="btn btn-sm btn-outline-warning text-dark" data-bs-toggle="collapse" data-bs-target="#try-put-order-status">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-put-order-status">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
-                    <input type="number" id="param-put-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Order yang diubah statusnya" />
-                  </div>
-                  <h6>Request Body (JSON Manual):</h6>
-                  <textarea id="req-put-order-status" class="form-control font-monospace small mb-2" rows="3">{
-  "status": "dibayar"
-}</textarea>
-                  <button class="btn btn-warning btn-sm mb-2" onclick="runApi('/api/orders/{id}/status', 'PUT', { id: 'param-put-order-id' }, 'req-put-order-status', 'res-put-order-status')">Kirim Request</button>
-                  <pre id="res-put-order-status">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          <div class="card shadow-sm mb-3 endpoint-card endpoint-delete">
-            <div class="card-body">
-              <div class="d-flex align-items-center mb-1">
-                <span class="badge badge-delete me-2">DELETE</span>
-                <code class="fs-6 fw-bold text-dark">/api/orders/:id</code>
-              </div>
-              <p class="small text-muted mb-2">Menghapus pesanan berdasarkan Order ID.</p>
-              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#try-delete-order">⚡ Try It Out</button>
-
-              <div class="collapse mt-3" id="try-delete-order">
-                <div class="p-3 bg-light rounded border">
-                  <div class="mb-2">
-                    <label class="form-label small fw-bold">Parameter Path: Order ID</label>
-                    <input type="number" id="param-delete-order-id" class="form-control form-control-sm" value="1" placeholder="Masukkan ID Pesanan yang akan dihapus" />
-                  </div>
-                  <button class="btn btn-danger btn-sm mb-2" onclick="runApi('/api/orders/{id}', 'DELETE', { id: 'param-delete-order-id' }, null, 'res-delete-order')">Kirim Request</button>
-                  <pre id="res-delete-order">// Response akan tampil di sini</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <!-- RIGHT: TEST PLAYGROUND COLUMN -->
+        <div class="playground-pane" id="playground-column">
+          <!-- Rendered dynamically -->
         </div>
 
       </div>
+
     </div>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    function clearToken() {
-      document.getElementById("globalJwtToken").value = "";
+    // State
+    let activeEndpointId = "overview";
+    let activeToken = localStorage.getItem("localize_jwt_token") || "";
+
+        // API Endpoint Definitions
+    const endpoints = {
+      "overview": {
+        title: "Pengantar & Panduan",
+        desc: "Dokumentasi API Explorer untuk proyek Localize. Halaman ini adalah gerbang interaktif mandiri untuk menguji semua rute backend.",
+        isOverview: true
+      },
+      
+      // Auth & Users
+      "auth-register": {
+        category: "auth",
+        method: "POST",
+        path: "/api/auth/register",
+        title: "Register User Baru",
+        desc: "Mendaftarkan akun pengguna baru dengan peran 'customer' atau 'admin'. Jika berhasil, token JWT akan terbuat dan otomatis terisi pada global header di atas.",
+        requiresAuth: false,
+        pathParams: [],
+        body: {
+          fullName: "Budi Santoso",
+          email: "budi@mail.com",
+          phoneNumber: "081234567890",
+          password: "password123",
+          role: "customer"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Registrasi berhasil",
+          token: "eyJhbGciOi...",
+          user: {
+            id: 1,
+            full_name: "Budi Santoso",
+            email: "budi@mail.com",
+            phone_number: "081234567890",
+            role: "customer"
+          }
+        }
+      },
+      "auth-login": {
+        category: "auth",
+        method: "POST",
+        path: "/api/auth/login",
+        title: "Login & Dapatkan Token",
+        desc: "Melakukan verifikasi kredensial email dan sandi. Mengembalikan data profil user beserta token otentikasi JWT.",
+        requiresAuth: false,
+        pathParams: [],
+        body: {
+          email: "user@mail.com",
+          password: "123456"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Login berhasil",
+          token: "eyJhbGciOi...",
+          user: {
+            id: 1,
+            full_name: "Budi Santoso",
+            email: "budi@mail.com",
+            phone_number: "081234567890",
+            role: "customer"
+          }
+        }
+      },
+      "auth-users": {
+        category: "auth",
+        method: "GET",
+        path: "/api/auth/users",
+        title: "Ambil Semua Pengguna",
+        desc: "Mengambil daftar seluruh pengguna terdaftar dalam sistem.",
+        requiresAuth: false,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              full_name: "Budi Santoso",
+              email: "budi@mail.com",
+              phone_number: "081234567890",
+              role: "customer",
+              created_at: "2026-07-29T14:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "auth-user-detail": {
+        category: "auth",
+        method: "GET",
+        path: "/api/auth/users/{id}",
+        title: "Detail Pengguna by ID",
+        desc: "Mengambil data rincian profil satu pengguna berdasarkan ID.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID unik pengguna" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: {
+            id: 1,
+            full_name: "Budi Santoso",
+            email: "budi@mail.com",
+            phone_number: "081234567890",
+            role: "customer",
+            created_at: "2026-07-29T14:00:00.000Z"
+          }
+        }
+      },
+      "auth-user-update": {
+        category: "auth",
+        method: "PUT",
+        path: "/api/auth/users/{id}",
+        title: "Update Profil Pengguna",
+        desc: "Mengubah data profil nama, nomor telepon, atau role pengguna berdasarkan ID.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID unik pengguna yang diperbarui" }
+        ],
+        body: {
+          fullName: "Budi Santoso Updated",
+          phoneNumber: "081299998888",
+          role: "customer"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Profil user berhasil diperbarui"
+        }
+      },
+      "auth-user-delete": {
+        category: "auth",
+        method: "DELETE",
+        path: "/api/auth/users/{id}",
+        title: "Hapus Akun Pengguna",
+        desc: "Menghapus data akun pengguna secara permanen dari sistem database.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "3", desc: "ID unik pengguna yang akan dihapus" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "User berhasil dihapus"
+        }
+      },
+
+      // Products
+      "prod-list": {
+        category: "products",
+        method: "GET",
+        path: "/api/products",
+        title: "Katalog Semua Produk",
+        desc: "Mengambil semua katalog produk sepatu lokal yang aktif di database.",
+        requiresAuth: false,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              name: "Compass Gazette Low",
+              description: "Sepatu kanvas lokal desain klasik modern.",
+              price: 398000,
+              stock: 23,
+              size_stock: { "39": 5, "40": 10, "41": 0, "42": 8 },
+              image_url: "https://res.cloudinary.com/...",
+              created_at: "2026-07-29T14:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "prod-detail": {
+        category: "products",
+        method: "GET",
+        path: "/api/products/{id}",
+        title: "Detail Produk by ID",
+        desc: "Mengambil rincian detail spesifik satu produk sepatu.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID produk sepatu" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: {
+            id: 1,
+            name: "Compass Gazette Low",
+            description: "Sepatu kanvas lokal desain klasik modern.",
+            price: 398000,
+            stock: 23,
+            size_stock: { "39": 5, "40": 10, "41": 0, "42": 8 },
+            image_url: "https://res.cloudinary.com/...",
+            created_at: "2026-07-29T14:00:00.000Z"
+          }
+        }
+      },
+      "prod-create": {
+        category: "products",
+        method: "POST",
+        path: "/api/products",
+        title: "Tambah Produk Baru",
+        desc: "Menambahkan produk sepatu lokal baru. Rute ini juga mendukung unggahan file gambar asli langsung ke Cloudinary backend melalui multipart/form-data.",
+        requiresAuth: false,
+        isMultipart: true,
+        pathParams: [],
+        body: {
+          name: "Nah Project FlexKnit",
+          description: "Sepatu rajut lokal ultra ringan.",
+          price: 420000,
+          sizeStock: { "39": 10, "40": 5, "41": 0, "42": 8 },
+          imageUrl: "https://picsum.photos/400/400"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Produk berhasil ditambahkan",
+          data: {
+            id: 3,
+            name: "Nah Project FlexKnit",
+            description: "Sepatu rajut lokal ultra ringan.",
+            price: 420000,
+            stock: 23,
+            size_stock: { "39": 10, "40": 5, "41": 0, "42": 8 },
+            image_url: "https://res.cloudinary.com/..."
+          }
+        }
+      },
+      "prod-update": {
+        category: "products",
+        method: "PUT",
+        path: "/api/products/{id}",
+        title: "Update Produk by ID",
+        desc: "Memperbarui informasi nama, deskripsi, harga, maupun stock produk.",
+        requiresAuth: false,
+        isMultipart: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID produk yang akan diupdate" }
+        ],
+        body: {
+          name: "Compass Gazette Low Modified",
+          description: "Deskripsi terbaru desain lokal klasik.",
+          price: 410000,
+          sizeStock: { "39": 5, "40": 10, "41": 2, "42": 8 }
+        },
+        expectedResponse: {
+          success: true,
+          message: "Data produk berhasil diperbarui"
+        }
+      },
+      "prod-delete": {
+        category: "products",
+        method: "DELETE",
+        path: "/api/products/{id}",
+        title: "Hapus Produk Katalog",
+        desc: "Menghapus produk dari katalog aktif berdasarkan ID.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "3", desc: "ID produk yang dihapus" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "Produk berhasil dihapus"
+        }
+      },
+
+      // Orders
+      "order-create": {
+        category: "orders",
+        method: "POST",
+        path: "/api/orders",
+        title: "Buat Checkout Pesanan",
+        desc: "Membuat pesanan baru untuk memproses pembelian produk. Stok per ukuran sepatu akan berkurang otomatis sesuai kuantitas pembelian.",
+        requiresAuth: false,
+        pathParams: [],
+        body: {
+          userId: 1,
+          totalAmount: 398000,
+          shippingAddress: "Jl. Jenderal Sudirman No. 10, Jakarta Pusat",
+          addressNotes: "Samping gedung bank mandiri",
+          latitude: -6.2146,
+          longitude: 106.8184,
+          items: [
+            {
+              productId: 1,
+              size: "40",
+              quantity: 1,
+              price: 398000
+            }
+          ]
+        },
+        expectedResponse: {
+          success: true,
+          message: "Pesanan berhasil dibuat!",
+          orderId: 1,
+          distance: 2.54,
+          shippingFee: 6350,
+          totalAmount: 404350
+        }
+      },
+      "order-my-orders": {
+        category: "orders",
+        method: "GET",
+        path: "/api/orders/my-orders",
+        title: "Riwayat Pesanan Saya",
+        desc: "Mengambil daftar riwayat pesanan milik customer yang sedang aktif login (Diambil berdasarkan payload data JWT token).",
+        requiresAuth: true,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              order_id: 1,
+              total_amount: 404350,
+              shipping_address: "Jl. Jenderal Sudirman No. 10",
+              address_notes: "Samping gedung bank mandiri",
+              latitude: -6.2146,
+              longitude: 106.8184,
+              distance: 2.54,
+              shipping_fee: 6350,
+              status: "dipesan",
+              created_at: "2026-07-29T14:00:00.000Z",
+              ordered_size: "40",
+              ordered_quantity: 1,
+              product_name: "Compass Gazette Low",
+              product_image: "https://res.cloudinary.com/..."
+            }
+          ]
+        }
+      },
+      "order-admin-list": {
+        category: "orders",
+        method: "GET",
+        path: "/api/orders/admin",
+        title: "Rekap Seluruh Pesanan",
+        desc: "Mengambil total rekap seluruh pesanan masuk dalam database untuk keperluan panel admin.",
+        requiresAuth: false,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              order_id: 1,
+              customer_name: "Budi Santoso",
+              phone_number: "081234567890",
+              total_amount: 404350,
+              shipping_address: "Jl. Jenderal Sudirman No. 10",
+              address_notes: "Samping gedung bank mandiri",
+              latitude: -6.2146,
+              longitude: 106.8184,
+              distance: 2.54,
+              shipping_fee: 6350,
+              status: "dipesan",
+              created_at: "2026-07-29T14:00:00.000Z",
+              ordered_size: "40",
+              ordered_quantity: 1,
+              product_name: "Compass Gazette Low"
+            }
+          ]
+        }
+      },
+      "order-detail": {
+        category: "orders",
+        method: "GET",
+        path: "/api/orders/{id}",
+        title: "Detail Pesanan by ID",
+        desc: "Mengambil informasi detail rincian item, data pembeli, dan alamat dari satu pesanan.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID pesanan" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: {
+            id: 1,
+            user_id: 1,
+            total_amount: 404350,
+            shipping_address: "Jl. Jenderal Sudirman No. 10",
+            address_notes: "Samping gedung bank mandiri",
+            latitude: -6.2146,
+            longitude: 106.8184,
+            distance: 2.54,
+            shipping_fee: 6350,
+            status: "dipesan",
+            created_at: "2026-07-29T14:00:00.000Z",
+            full_name: "Budi Santoso",
+            phone_number: "081234567890",
+            items: [
+              {
+                id: 1,
+                order_id: 1,
+                product_id: 1,
+                size: "40",
+                quantity: 1,
+                price_at_purchase: 398000,
+                product_name: "Compass Gazette Low",
+                image_url: "https://res.cloudinary.com/..."
+              }
+            ]
+          }
+        }
+      },
+      "order-status": {
+        category: "orders",
+        method: "PUT",
+        path: "/api/orders/{id}/status",
+        title: "Update Status Pesanan",
+        desc: "Mengubah status rincian alur pesanan (Status valid: dipesan, dibayar, dikirim, selesai).",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID pesanan" }
+        ],
+        body: {
+          status: "dibayar"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Status pesanan #1 diubah menjadi 'dibayar'"
+        }
+      },
+      "order-delete": {
+        category: "orders",
+        method: "DELETE",
+        path: "/api/orders/{id}",
+        title: "Hapus Data Pesanan",
+        desc: "Membatalkan / Menghapus pesanan berdasarkan ID.",
+        requiresAuth: false,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID pesanan" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "Pesanan berhasil dihapus"
+        }
+      },
+
+      // Locations
+      "loc-list": {
+        category: "locations",
+        method: "GET",
+        path: "/api/users/locations",
+        title: "Ambil Lokasi Tersimpan",
+        desc: "Mengambil daftar alamat favorit atau lokasi tersimpan milik user terotentikasi saat ini.",
+        requiresAuth: true,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              user_id: 1,
+              label: "Rumah Utama",
+              address_text: "Jl. Sudirman No. 45",
+              address_notes: "Pagar hitam",
+              latitude: -6.2297,
+              longitude: 106.8006,
+              is_primary: 1,
+              created_at: "2026-07-29T14:00:00.000Z"
+            }
+          ]
+        }
+      },
+      "loc-create": {
+        category: "locations",
+        method: "POST",
+        path: "/api/users/locations",
+        title: "Simpan Lokasi Baru",
+        desc: "Menambahkan lokasi favorit baru. Jika diset sebagai lokasi utama (isPrimary: 1), alamat utama lainnya akan dinonaktifkan.",
+        requiresAuth: true,
+        pathParams: [],
+        body: {
+          label: "Rumah",
+          addressText: "Jl. MH Thamrin No. 8, Jakarta Pusat",
+          addressNotes: "Dekat halte MRT",
+          latitude: -6.1931,
+          longitude: 106.8228,
+          isPrimary: 1
+        },
+        expectedResponse: {
+          success: true,
+          message: "Lokasi berhasil disimpan",
+          data: {
+            id: 3,
+            user_id: 1,
+            label: "Rumah",
+            address_text: "Jl. MH Thamrin No. 8",
+            address_notes: "Dekat halte MRT",
+            latitude: -6.1931,
+            longitude: 106.8228,
+            is_primary: 1
+          }
+        }
+      },
+      "loc-update": {
+        category: "locations",
+        method: "PUT",
+        path: "/api/users/locations/{id}",
+        title: "Update Lokasi Tersimpan",
+        desc: "Memperbarui label, alamat, patokan, koordinat GPS, atau status prioritas alamat tersimpan.",
+        requiresAuth: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID alamat tersimpan" }
+        ],
+        body: {
+          label: "Kantor Pusat",
+          addressText: "Gedung Cyber 2, Kuningan, Jakarta Selatan",
+          addressNotes: "Lantai 15",
+          latitude: -6.2238,
+          longitude: 106.8291,
+          isPrimary: 1
+        },
+        expectedResponse: {
+          success: true,
+          message: "Lokasi berhasil diperbarui"
+        }
+      },
+      "loc-delete": {
+        category: "locations",
+        method: "DELETE",
+        path: "/api/users/locations/{id}",
+        title: "Hapus Lokasi Tersimpan",
+        desc: "Menghapus data lokasi favorit berdasarkan ID.",
+        requiresAuth: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID alamat tersimpan" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "Lokasi berhasil dihapus"
+        }
+      },
+      "store-get": {
+        category: "store",
+        method: "GET",
+        path: "/api/store",
+        title: "Ambil Lokasi Penjual",
+        desc: "Mengambil data pengaturan lokasi tempat penjualan toko utama beserta biaya pengiriman per km.",
+        requiresAuth: false,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: {
+            id: 1,
+            name: "Localize Store Jakarta",
+            address: "Grand Indonesia Mall, Jakarta Pusat",
+            latitude: -6.1953,
+            longitude: 106.8203,
+            shipping_fee_per_km: 2500
+          }
+        }
+      },
+      "store-update": {
+        category: "store",
+        method: "PUT",
+        path: "/api/store",
+        title: "Update Lokasi Penjual",
+        desc: "Mengonfigurasi ulang nama toko, alamat fisik, koordinat GPS (latitude/longitude), dan tarif ongkos kirim per kilometer. Rute ini terproteksi keamanan dan hanya dapat diakses oleh pengguna dengan role 'admin'.",
+        requiresAuth: true,
+        pathParams: [],
+        body: {
+          name: "Localize Store Jakarta Utama",
+          address: "Grand Indonesia Mall, Jakarta Pusat",
+          latitude: -6.1953,
+          longitude: 106.8203,
+          shippingFeePerKm: 3000
+        },
+        expectedResponse: {
+          success: true,
+          message: "Pengaturan lokasi penjual berhasil diperbarui"
+        }
+      }
+    };
+
+    // Render Side Menu
+    function renderMenu() {
+      const cats = { auth: "menu-auth", products: "menu-products", orders: "menu-orders", locations: "menu-locations", store: "menu-store" };
+      
+      // Clear
+      Object.values(cats).forEach(id => {
+        document.getElementById(id).innerHTML = "";
+      });
+
+      Object.entries(endpoints).forEach(([id, ep]) => {
+        if (ep.isOverview) return;
+        const parentId = cats[ep.category];
+        const methodClass = `method-${ep.method.toLowerCase()}`;
+        
+        document.getElementById(parentId).innerHTML += `
+          <button class="menu-item" onclick="selectEndpoint('${id}', this)">
+            <span class="badge-method ${methodClass}">${ep.method}</span>
+            <span>${ep.path.replace("/api", "")}</span>
+          </button>
+        `;
+      });
     }
 
-    async function runApi(urlTemplate, method, pathParamsObj, reqBodyId, resContainerId, autoSaveToken = false) {
-      const resContainer = document.getElementById(resContainerId);
-      const token = document.getElementById("globalJwtToken").value.trim();
-      resContainer.innerText = "⏳ Mengirim Request...";
+    function selectEndpoint(id, buttonEl) {
+      activeEndpointId = id;
+      
+      // Update Active state in menu
+      document.querySelectorAll(".menu-item").forEach(el => el.classList.remove("active"));
+      if (buttonEl) {
+        buttonEl.classList.add("active");
+      }
 
-      // Replace Path Parameters on URL dynamically
-      let finalUrl = urlTemplate;
-      if (pathParamsObj) {
-        for (const [key, elementId] of Object.entries(pathParamsObj)) {
-          const paramVal = document.getElementById(elementId).value;
-          if (!paramVal) {
-            resContainer.innerText = `❌ Error: Parameter path '${key}' wajib diisi!`;
+      renderWorkspace();
+    }
+
+    // Render workspace columns
+    function renderWorkspace() {
+      const ep = endpoints[activeEndpointId];
+      const docsCol = document.getElementById("docs-column");
+      const playCol = document.getElementById("playground-column");
+
+      if (ep.isOverview) {
+        // Overview Template
+        docsCol.innerHTML = `
+          <h1 class="fw-bold mb-3 text-white">${ep.title}</h1>
+          <p class="text-muted leading-relaxed">${ep.desc}</p>
+          <hr class="border-secondary my-4" />
+          
+          <h4 class="fw-bold text-white mb-3">🛠️ Cara Melakukan Pengujian</h4>
+          <div class="mb-4">
+            <h6 class="text-primary fw-bold">1. Dapatkan Token JWT</h6>
+            <p class="small text-muted">Buka menu <strong>POST /auth/login</strong>, masukkan email & password, lalu klik <strong>Execute Request</strong>. Token JWT yang didapat akan otomatis tersimpan pada header Authorization global di atas.</p>
+          </div>
+          <div class="mb-4">
+            <h6 class="text-success fw-bold">2. Penanganan Parameter Jalur (Path Parameter)</h6>
+            <p class="small text-muted">Bila endpoint rute membutuhkan ID (contoh: <code>/users/{id}</code>), field input parameter akan muncul otomatis di panel tengah untuk Anda isi sebelum melakukan eksekusi.</p>
+          </div>
+          <div class="mb-4">
+            <h6 class="text-warning fw-bold">3. Melakukan Eksekusi</h6>
+            <p class="small text-muted">Klik tombol <strong>Execute Request</strong> di sisi kanan. Hasil output respons JSON, kode status, waktu respons, dan log curl terminal akan tercetak secara detail.</p>
+          </div>
+        `;
+
+        playCol.innerHTML = `
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-terminal-fill display-3 d-block mb-3"></i>
+            Pilih salah satu endpoint API di menu kiri untuk memulai pengujian interaktif.
+          </div>
+        `;
+        return;
+      }
+
+      // 1. Render Middle Column (Documentation & Parameter Inputs)
+      const methodBadge = `badge-method method-${ep.method.toLowerCase()}`;
+      let pathParamsHtml = "";
+      if (ep.pathParams && ep.pathParams.length > 0) {
+        pathParamsHtml = `
+          <h5 class="fw-bold mt-4 mb-3 text-white">Path Parameters</h5>
+          <div class="table-responsive bg-dark rounded border border-secondary mb-4">
+            <table class="table table-params mb-0 table-dark align-middle">
+              <thead>
+                <tr>
+                  <th style="width: 25%">Nama</th>
+                  <th style="width: 50%">Deskripsi</th>
+                  <th style="width: 25%">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ep.pathParams.map(p => `
+                  <tr>
+                    <td>
+                      <span class="param-name">${p.name}</span>
+                      <span class="param-required">${p.required ? 'required' : ''}</span>
+                      <span class="param-type">${p.type}</span>
+                    </td>
+                    <td class="text-muted small">${p.desc}</td>
+                    <td>
+                      <input type="text" id="input-param-${p.name}" class="form-control form-control-sm input-dark font-monospace" value="${p.default}" />
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      // Request Body
+      let bodyHtml = "";
+      if (ep.body) {
+        // If it supports file upload, show upload inputs
+        let uploadFieldHtml = "";
+        if (ep.isMultipart) {
+          uploadFieldHtml = `
+            <div class="mb-3 p-3 border border-secondary rounded bg-dark">
+              <label class="form-label small text-warning fw-bold"><i class="bi bi-image"></i> Tes File Upload Gambar Asli (Opsional)</label>
+              <input type="file" id="playground-file-input" class="form-control form-control-sm input-dark" accept="image/*" />
+              <small class="text-muted d-block mt-1">Jika file dipilih, payload akan otomatis dikirim sebagai multipart/form-data ke backend.</small>
+            </div>
+          `;
+        }
+
+        // Custom helpers (GPS for order creation or location creation)
+        let helperHtml = "";
+        if (activeEndpointId === "order-create" || activeEndpointId === "loc-create" || activeEndpointId === "loc-update" || activeEndpointId === "store-update") {
+          helperHtml = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small text-muted">Request Body Payload (JSON):</span>
+              <button class="btn btn-sm btn-outline-info py-0 px-2 small" onclick="fillGPSDataToBody()"><i class="bi bi-geo-alt-fill"></i> Dapatkan GPS Saya</button>
+            </div>
+          `;
+        } else {
+          helperHtml = `<label class="form-label small text-muted mb-2">Request Body Payload (JSON):</label>`;
+        }
+
+        bodyHtml = `
+          <h5 class="fw-bold mt-4 mb-3 text-white">Request Body</h5>
+          ${uploadFieldHtml}
+          <div class="mb-3">
+            ${helperHtml}
+            <textarea id="playground-body-textarea" class="form-control json-textarea" rows="8">${JSON.stringify(ep.body, null, 2)}</textarea>
+          </div>
+        `;
+      }
+
+      docsCol.innerHTML = `
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="${methodBadge}">${ep.method}</span>
+          <span class="h4 fw-bold font-monospace mb-0 text-white">${ep.path}</span>
+        </div>
+        
+        <h2 class="fw-bold text-white mb-2">${ep.title}</h2>
+        <p class="text-muted small mb-4">${ep.desc}</p>
+        
+        ${ep.requiresAuth ? `
+          <div class="alert alert-warning py-2 px-3 small border border-warning bg-opacity-10 bg-warning text-warning rounded-3 mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Rute ini terproteksi keamanan. Pastikan Token JWT sudah terisi di kanan atas.
+          </div>
+        ` : ''}
+
+        ${pathParamsHtml}
+        ${bodyHtml}
+      `;
+
+            // 2. Render Right Column (Request URL & Playground execution)
+      const placeholderText = ep.expectedResponse 
+        ? `// Awaiting execution...\n\n// Expected JSON Response:\n${JSON.stringify(ep.expectedResponse, null, 2)}`
+        : `// Awaiting execution...`;
+      playCol.innerHTML = `
+        <h5 class="fw-bold text-white mb-3">Playground</h5>
+        
+        <div class="mb-4">
+          <button class="btn btn-action btn-action-primary w-100 py-2" onclick="executeCurrentRequest()">
+            <i class="bi bi-play-fill me-1"></i> Execute Request
+          </button>
+        </div>
+
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <span class="text-muted small"><i class="bi bi-terminal-fill me-1"></i> Output Terminal</span>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2 text-muted" onclick="clearPlaygroundConsole()">Clear</button>
+          </div>
+          <!-- Dynamic placeholder showing expected response schema -->
+          <pre id="playground-console-output" class="terminal-content">${placeholderText}</pre>
+        </div>
+      `;
+    }
+
+    function clearPlaygroundConsole() {
+      const consoleEl = document.getElementById("playground-console-output");
+      if (consoleEl) {
+        const ep = endpoints[activeEndpointId];
+        const placeholderText = (ep && ep.expectedResponse) 
+          ? `// Console cleared. Awaiting request...\n\n// Expected JSON Response:\n${JSON.stringify(ep.expectedResponse, null, 2)}`
+          : `// Console cleared. Awaiting request...`;
+        consoleEl.innerText = placeholderText;
+      }
+    }
+
+    // Retrieve browser coordinate GPS
+    function fillGPSDataToBody() {
+      if (!("geolocation" in navigator)) {
+        alert("GPS tidak didukung oleh browser ini.");
+        return;
+      }
+      
+      const bodyTextarea = document.getElementById("playground-body-textarea");
+      if (!bodyTextarea) return;
+
+      try {
+        let currentPayload = JSON.parse(bodyTextarea.value);
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          currentPayload.latitude = pos.coords.latitude;
+          currentPayload.longitude = pos.coords.longitude;
+          
+          // Try Nominatim to lookup address
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            const data = await res.json();
+            if (data && data.display_name) {
+              if (currentPayload.shippingAddress !== undefined) currentPayload.shippingAddress = data.display_name;
+              if (currentPayload.addressText !== undefined) currentPayload.addressText = data.display_name;
+            }
+          } catch(e) {}
+          
+          bodyTextarea.value = JSON.stringify(currentPayload, null, 2);
+          alert("Lokasi GPS berhasil diambil & disisipkan!");
+        });
+      } catch (err) {
+        alert("Payload JSON tidak valid. Perbaiki terlebih dahulu sebelum mengambil GPS.");
+      }
+    }
+
+    // Token Actions
+    function clearToken() {
+      document.getElementById("globalJwtToken").value = "";
+      localStorage.removeItem("localize_jwt_token");
+      activeToken = "";
+    }
+
+    function onTokenManualChange() {
+      const token = document.getElementById("globalJwtToken").value.trim();
+      if (token) {
+        localStorage.setItem("localize_jwt_token", token);
+        activeToken = token;
+      } else {
+        clearToken();
+      }
+    }
+
+    // REQUEST EXECUTION ENGINE
+    async function executeCurrentRequest() {
+      const ep = endpoints[activeEndpointId];
+      const consoleEl = document.getElementById("playground-console-output");
+      if (!consoleEl) return;
+
+      consoleEl.innerText = "⏳ Sending HTTP request...";
+
+      // Compile Path parameters
+      let finalUrl = ep.path;
+      if (ep.pathParams && ep.pathParams.length > 0) {
+        for (const p of ep.pathParams) {
+          const input = document.getElementById(`input-param-${p.name}`);
+          const val = input ? input.value : "";
+          if (!val && p.required) {
+            consoleEl.innerText = `❌ Error: Parameter path '${p.name}' wajib diisi!`;
             return;
           }
-          finalUrl = finalUrl.replace(`{${key}}`, paramVal);
+          finalUrl = finalUrl.replace(`{${p.name}}`, val);
         }
       }
 
-      let headers = { "Content-Type": "application/json" };
+      // Headers
+      const token = document.getElementById("globalJwtToken").value.trim();
+      let headers = {};
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      let options = { method, headers };
+      let options = {
+        method: ep.method,
+        headers
+      };
 
-      if (reqBodyId && (method === "POST" || method === "PUT")) {
+      // Handle Body payload
+      const bodyTextarea = document.getElementById("playground-body-textarea");
+      const fileInput = document.getElementById("playground-file-input");
+
+      let curlBodyString = "";
+      
+      if (ep.body && bodyTextarea) {
+        let jsonPayload;
         try {
-          const rawText = document.getElementById(reqBodyId).value;
-          options.body = JSON.stringify(JSON.parse(rawText));
+          jsonPayload = JSON.parse(bodyTextarea.value);
         } catch (err) {
-          resContainer.innerText = "❌ JSON Request Body tidak valid: " + err.message;
+          consoleEl.innerText = `❌ Error: Format JSON Request Body tidak valid!\n${err.message}`;
           return;
+        }
+
+        // If file input has a selected file, send as multipart/form-data
+        if (fileInput && fileInput.files[0]) {
+          const formData = new FormData();
+          formData.append("name", jsonPayload.name || "");
+          formData.append("price", jsonPayload.price || 0);
+          formData.append("description", jsonPayload.description || "");
+          formData.append("sizeStock", JSON.stringify(jsonPayload.sizeStock || {}));
+          formData.append("imageFile", fileInput.files[0]);
+          if (jsonPayload.imageUrl) {
+            formData.append("imageUrl", jsonPayload.imageUrl);
+          }
+
+          options.body = formData;
+          // Note: Do not set Content-Type header manually when sending FormData,
+          // the browser will automatically assign boundary parameters.
+          curlBodyString = `-F "imageFile=@${fileInput.files[0].name}" [Multipart Form-Data]`;
+        } else {
+          // Standard JSON Body
+          headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(jsonPayload);
+          curlBodyString = `-d '${options.body}'`;
         }
       }
 
@@ -526,17 +1283,41 @@
       try {
         const response = await fetch(finalUrl, options);
         const duration = (performance.now() - startTime).toFixed(2);
-        const data = await response.json();
-
-        if (autoSaveToken && data.success && data.token) {
-          document.getElementById("globalJwtToken").value = data.token;
+        
+        let responseData;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
         }
 
-        resContainer.innerText = `[${method}] ${finalUrl}\nHTTP Status: ${response.status} ${response.statusText} (${duration} ms)\n\n` + JSON.stringify(data, null, 2);
+        // Save token auto-fill on register/login
+        if (responseData.success && responseData.token) {
+          document.getElementById("globalJwtToken").value = responseData.token;
+          localStorage.setItem("localize_jwt_token", responseData.token);
+          activeToken = responseData.token;
+        }
+
+        // Compile Curl String Logger
+        let curlHeaders = Object.entries(headers).map(([k, v]) => `-H "${k}: ${v}"`).join(" ");
+        let curlCmd = `curl -X ${ep.method} "${window.location.origin}${finalUrl}" ${curlHeaders} ${curlBodyString}`;
+
+        consoleEl.innerText = 
+          `HTTP Request:\n[${ep.method}] ${window.location.origin}${finalUrl}\n\n` +
+          `Curl Command:\n${curlCmd}\n\n` +
+          `HTTP Status Response:\n${response.status} ${response.statusText} (${duration} ms)\n\n` +
+          `Response Headers:\n` + JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2) + `\n\n` +
+          `Response Body:\n` + (typeof responseData === 'object' ? JSON.stringify(responseData, null, 2) : responseData);
+
       } catch (err) {
-        resContainer.innerText = "❌ Gagal Menghubungi API Server: " + err.message;
+        consoleEl.innerText = `❌ HTTP Connection Failed:\n${err.message}`;
       }
     }
+
+    // Initialize Layout
+    renderMenu();
+    renderWorkspace();
   </script>
 </body>
 </html>

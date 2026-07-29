@@ -9,8 +9,10 @@ async function seed() {
   try {
     await db.execute("DROP TABLE IF EXISTS order_items;");
     await db.execute("DROP TABLE IF EXISTS orders;");
+    await db.execute("DROP TABLE IF EXISTS user_locations;");
     await db.execute("DROP TABLE IF EXISTS products;");
     await db.execute("DROP TABLE IF EXISTS users;");
+    await db.execute("DROP TABLE IF EXISTS store_settings;");
 
     console.log("🔄 Reset tabel berhasil, membuat skema tabel baru...");
 
@@ -23,6 +25,21 @@ async function seed() {
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'customer',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS user_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        label TEXT NOT NULL DEFAULT 'Rumah',
+        address_text TEXT NOT NULL,
+        address_notes TEXT,
+        latitude REAL DEFAULT 0,
+        longitude REAL DEFAULT 0,
+        is_primary INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
 
@@ -48,9 +65,22 @@ async function seed() {
         address_notes TEXT,
         latitude REAL,
         longitude REAL,
+        distance REAL DEFAULT 0,
+        shipping_fee REAL DEFAULT 0,
         status TEXT DEFAULT 'dipesan',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS store_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL DEFAULT 'Toko Utama',
+        address TEXT NOT NULL,
+        latitude REAL DEFAULT 0,
+        longitude REAL DEFAULT 0,
+        shipping_fee_per_km REAL DEFAULT 2000
       );
     `);
 
@@ -77,6 +107,17 @@ async function seed() {
       args: [2, 'Admin Localize', 'admin@localize.com', '089876543210', 'admin123', 'admin']
     });
 
+    // Seed Data Lokasi Tersimpan untuk User ID 1 (Rumah & Kantor)
+    await db.execute({
+      sql: `INSERT INTO user_locations (user_id, label, address_text, address_notes, latitude, longitude, is_primary) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [1, 'Rumah Utama', 'Jl. Sudirman No. 45, Kebayoran Baru, Jakarta Selatan', 'Pagar hitam, cat tembok abu-abu', -6.2297, 106.8006, 1]
+    });
+
+    await db.execute({
+      sql: `INSERT INTO user_locations (user_id, label, address_text, address_notes, latitude, longitude, is_primary) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [1, 'Kantor', 'Gedung Wisma 46 Lt. 12, Jl. Jend. Gatot Subroto, Jakarta Pusat', 'Titipkan di Resepsionis Lt. 1', -6.2088, 106.8180, 0]
+    });
+
     const compassSizeStock = JSON.stringify({ "39": 5, "40": 10, "41": 0, "42": 8 });
     const ventelaSizeStock = JSON.stringify({ "38": 12, "39": 0, "40": 15, "41": 3 });
 
@@ -90,7 +131,12 @@ async function seed() {
       args: [2, 'Ventela Public Low', 'Sepatu lokal paling populer dengan insole Ultralite Foam.', 289000, 30, ventelaSizeStock, 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/ventela_public.jpg']
     });
 
-    console.log("✅ Berhasil memperbarui skema dan seeding database Turso!");
+    await db.execute({
+      sql: `INSERT INTO store_settings (id, name, address, latitude, longitude, shipping_fee_per_km) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [1, 'Localize Store Jakarta', 'Grand Indonesia Mall, Jakarta Pusat', -6.1953, 106.8203, 2500]
+    });
+
+    console.log("✅ Berhasil memperbarui skema (termasuk user_locations & store_settings) dan seeding database Turso!");
     process.exit(0);
   } catch (error) {
     console.error("❌ Terjadi kesalahan seeder:", error);
