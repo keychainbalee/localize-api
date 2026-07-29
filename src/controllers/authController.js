@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { db } from "../config/db.js";
 
 const generateToken = (user) => {
@@ -17,10 +18,13 @@ export const register = async (req, res) => {
   }
 
   try {
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
     const result = await db.execute({
       sql: `INSERT INTO users (full_name, email, phone_number, password_hash, role) 
             VALUES (?, ?, ?, ?, ?) RETURNING id, full_name, email, phone_number, role`,
-      args: [fullName, email, phoneNumber, password, role || "customer"],
+      args: [fullName, email, phoneNumber, passwordHash, role || "customer"],
     });
 
     const user = result.rows[0];
@@ -46,11 +50,16 @@ export const login = async (req, res) => {
       args: [email],
     });
 
-    if (result.rows.length === 0 || result.rows[0].password_hash !== password) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: "Email atau password salah" });
     }
 
     const user = result.rows[0];
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Email atau password salah" });
+    }
+
     delete user.password_hash;
 
     const token = generateToken(user);

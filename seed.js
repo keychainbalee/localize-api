@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import bcrypt from "bcryptjs";
 import { db } from "./src/config/db.js";
 
 async function seed() {
@@ -99,12 +100,12 @@ async function seed() {
 
     await db.execute({
       sql: `INSERT INTO users (id, full_name, email, phone_number, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [1, 'Pelanggan Pertama', 'user@mail.com', '081234567890', '123456', 'customer']
+      args: [1, 'Pelanggan Pertama', 'user@mail.com', '081234567890', bcrypt.hashSync('123456', 10), 'customer']
     });
 
     await db.execute({
       sql: `INSERT INTO users (id, full_name, email, phone_number, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [2, 'Admin Localize', 'admin@localize.com', '089876543210', 'admin123', 'admin']
+      args: [2, 'Admin Localize', 'admin@localize.com', '089876543210', bcrypt.hashSync('admin123', 10), 'admin']
     });
 
     // Seed Data Lokasi Tersimpan untuk User ID 1 (Rumah & Kantor)
