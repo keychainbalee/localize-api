@@ -327,6 +327,9 @@
 
         <div class="menu-section-title">store / penjual</div>
         <div id="menu-store"></div>
+
+        <div class="menu-section-title">cart / keranjang</div>
+        <div id="menu-cart"></div>
       </div>
     </div>
 
@@ -952,12 +955,104 @@
           success: true,
           message: "Pengaturan lokasi penjual berhasil diperbarui"
         }
+      },
+      "cart-get": {
+        category: "cart",
+        method: "GET",
+        path: "/api/cart",
+        title: "Ambil Isi Keranjang",
+        desc: "Mengambil semua daftar item sepatu yang disimpan pelanggan di dalam keranjang belanja (cart) mereka.",
+        requiresAuth: true,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              user_id: 1,
+              product_id: 1,
+              size: "40",
+              quantity: 2,
+              created_at: "2026-07-30T14:10:17.000Z",
+              product_name: "Compass Gazette Low",
+              product_price: 398000,
+              product_image: "https://res.cloudinary.com/..."
+            }
+          ]
+        }
+      },
+      "cart-add": {
+        category: "cart",
+        method: "POST",
+        path: "/api/cart",
+        title: "Tambah ke Keranjang",
+        desc: "Menyimpan atau menambah item sepatu tertentu ke keranjang belanja. Jika produk dan ukuran yang sama sudah ada di keranjang, kuantitasnya akan ditambahkan.",
+        requiresAuth: true,
+        pathParams: [],
+        body: {
+          productId: 1,
+          size: "40",
+          quantity: 1
+        },
+        expectedResponse: {
+          success: true,
+          message: "Item berhasil ditambahkan ke keranjang"
+        }
+      },
+      "cart-update": {
+        category: "cart",
+        method: "PUT",
+        path: "/api/cart/{id}",
+        title: "Ubah Kuantitas Cart",
+        desc: "Mengubah kuantitas jumlah sepatu untuk item keranjang tertentu berdasarkan ID item keranjang.",
+        requiresAuth: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID item keranjang belanja" }
+        ],
+        body: {
+          quantity: 3
+        },
+        expectedResponse: {
+          success: true,
+          message: "Jumlah item keranjang berhasil diubah"
+        }
+      },
+      "cart-delete-item": {
+        category: "cart",
+        method: "DELETE",
+        path: "/api/cart/{id}",
+        title: "Hapus Item Keranjang",
+        desc: "Menghapus satu item sepatu tertentu dari keranjang belanja.",
+        requiresAuth: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID item keranjang belanja yang dihapus" }
+        ],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "Item keranjang berhasil dihapus"
+        }
+      },
+      "cart-clear": {
+        category: "cart",
+        method: "DELETE",
+        path: "/api/cart",
+        title: "Kosongkan Keranjang",
+        desc: "Menghapus seluruh daftar belanjaan di keranjang milik user terotentikasi saat ini.",
+        requiresAuth: true,
+        pathParams: [],
+        body: null,
+        expectedResponse: {
+          success: true,
+          message: "Seluruh keranjang belanja berhasil dikosongkan"
+        }
       }
     };
 
     // Render Side Menu
     function renderMenu() {
-      const cats = { auth: "menu-auth", products: "menu-products", orders: "menu-orders", locations: "menu-locations", store: "menu-store" };
+      const cats = { auth: "menu-auth", products: "menu-products", orders: "menu-orders", locations: "menu-locations", store: "menu-store", cart: "menu-cart" };
       
       // Clear
       Object.values(cats).forEach(id => {

@@ -65,3 +65,12 @@ export const storeSettings = sqliteTable("store_settings", {
   longitude: real("longitude").default(0),
   shippingFeePerKm: real("shipping_fee_per_km").default(2000)
 });
+
+export const cartItems = sqliteTable("cart_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  size: text("size").notNull(),
+  quantity: integer("quantity").default(1),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
+});

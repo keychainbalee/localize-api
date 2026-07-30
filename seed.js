@@ -3,12 +3,13 @@ dotenv.config();
 
 import bcrypt from "bcryptjs";
 import { db } from "./src/config/db.js";
-import { users, userLocations, products, orderItems, orders, storeSettings } from "./src/config/schema.js";
+import { users, userLocations, products, orderItems, orders, storeSettings, cartItems } from "./src/config/schema.js";
 
 async function seed() {
   console.log("⏳ Menghubungkan ke Turso dan mengosongkan tabel...");
 
   try {
+    await db.delete(cartItems);
     await db.delete(orderItems);
     await db.delete(orders);
     await db.delete(userLocations);
