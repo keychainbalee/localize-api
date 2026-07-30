@@ -51,7 +51,7 @@ export const register = async (req, res) => {
         latitude: latitude ? Number(latitude) : 0,
         longitude: longitude ? Number(longitude) : 0,
         isPrimary: 1
-      });
+      }).returning();
     }
 
     const token = generateToken(user);
