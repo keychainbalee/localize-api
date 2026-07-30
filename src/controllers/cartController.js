@@ -19,7 +19,7 @@ export const getMyCart = async (req, res) => {
       product_image: products.imageUrl
     })
     .from(cartItems)
-    .join(products, eq(cartItems.productId, products.id))
+    .innerJoin(products, eq(cartItems.productId, products.id))
     .where(eq(cartItems.userId, Number(userId)));
 
     res.json({ success: true, data: result });
