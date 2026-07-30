@@ -427,6 +427,56 @@ export const uploadPaymentProof = async (req, res) => {
   }
 };
 
+// [POST] User membatalkan pesanannya sendiri (dengan pengecekan kepemilikan)
+export const cancelMyOrder = async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  try {
+    // Pastikan order ini milik user yang sedang login
+    const orderResult = await db.select().from(orders).where(
+      and(eq(orders.id, Number(id)), eq(orders.userId, Number(userId)))
+    );
+
+    if (orderResult.length === 0) {
+      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan atau bukan milik Anda" });
+    }
+
+    const order = orderResult[0];
+
+    // Hanya bisa dibatalkan jika masih berstatus 'dipesan'
+    if (order.status !== "dipesan") {
+      return res.status(400).json({
+        success: false,
+        message: `Pesanan dengan status '${order.status}' tidak dapat dibatalkan`
+      });
+    }
+
+    // Update status ke batal
+    await db.update(orders).set({ status: "batal" }).where(eq(orders.id, Number(id)));
+
+    // Kembalikan stok & kurangi sold_count
+    const itemsList = await db.select().from(orderItems).where(eq(orderItems.orderId, Number(id)));
+    for (const item of itemsList) {
+      const prodResult = await db.select().from(products).where(eq(products.id, item.productId));
+      if (prodResult.length > 0) {
+        const product = prodResult[0];
+        const sizeStockObj = JSON.parse(product.sizeStock || "{}");
+        sizeStockObj[item.size] = (Number(sizeStockObj[item.size]) || 0) + item.quantity;
+        const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
+        const newSoldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
+        await db.update(products)
+          .set({ sizeStock: JSON.stringify(sizeStockObj), stock: newTotalStock, soldCount: newSoldCount })
+          .where(eq(products.id, item.productId));
+      }
+    }
+
+    res.json({ success: true, message: "Pesanan berhasil dibatalkan. Stok telah dikembalikan." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

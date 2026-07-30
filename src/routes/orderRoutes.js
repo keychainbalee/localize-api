@@ -8,7 +8,8 @@ import {
   getOrderById, 
   updateOrderStatus, 
   deleteOrder,
-  uploadPaymentProof
+  uploadPaymentProof,
+  cancelMyOrder
 } from "../controllers/orderController.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -19,6 +20,7 @@ router.get("/my-orders", authenticateToken, getMyOrders);
 router.get("/admin", authenticateToken, getAdminOrders);
 router.get("/:id", authenticateToken, getOrderById);
 router.post("/:id/payment-proof", authenticateToken, upload.single("imageFile"), uploadPaymentProof);
+router.post("/:id/cancel", authenticateToken, cancelMyOrder);
 router.put("/:id/status", authenticateToken, updateOrderStatus);
 router.delete("/:id", authenticateToken, deleteOrder);
 
