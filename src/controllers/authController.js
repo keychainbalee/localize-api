@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
-import { users } from "../config/schema.js";
+import { users, userLocations } from "../config/schema.js";
 import { uploadToCloudinary } from "../config/cloudinary.js";
 
 const generateToken = (user) => {
@@ -14,7 +14,7 @@ const generateToken = (user) => {
 };
 
 export const register = async (req, res) => {
-  const { fullName, email, phoneNumber, password, role } = req.body;
+  const { fullName, email, phoneNumber, password, role, addressText, latitude, longitude } = req.body;
 
   if (!fullName || !email || !phoneNumber || !password) {
     return res.status(400).json({ success: false, message: "Semua field wajib diisi" });
@@ -41,6 +41,18 @@ export const register = async (req, res) => {
 
     const user = result[0];
     delete user.passwordHash;
+
+    if (addressText) {
+      await db.insert(userLocations).values({
+        userId: user.id,
+        label: "Rumah",
+        addressText,
+        addressNotes: "",
+        latitude: latitude ? Number(latitude) : 0,
+        longitude: longitude ? Number(longitude) : 0,
+        isPrimary: 1
+      });
+    }
 
     const token = generateToken(user);
 
