@@ -817,6 +817,26 @@
           message: "Pesanan berhasil dihapus"
         }
       },
+      "order-upload-proof": {
+        category: "orders",
+        method: "POST",
+        path: "/api/orders/{id}/payment-proof",
+        title: "Unggah Bukti Pembayaran",
+        desc: "Mengunggah file foto bukti transfer/pembayaran untuk pesanan tertentu sebelum melebihi tenggat waktu 24 jam. Mengubah status pesanan menjadi 'dibayar'. Rute ini mendukung multipart/form-data untuk file gambar.",
+        requiresAuth: true,
+        isMultipart: true,
+        pathParams: [
+          { name: "id", type: "integer", required: true, default: "1", desc: "ID unik pesanan" }
+        ],
+        body: {
+          imageUrl: "https://picsum.photos/400/400"
+        },
+        expectedResponse: {
+          success: true,
+          message: "Bukti transfer berhasil diunggah. Status pesanan diubah menjadi 'dibayar'.",
+          paymentProofUrl: "https://res.cloudinary.com/..."
+        }
+      },
 
       // Locations
       "loc-list": {

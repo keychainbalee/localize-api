@@ -45,6 +45,8 @@ export const orders = sqliteTable("orders", {
   distance: real("distance").default(0),
   shippingFee: real("shipping_fee").default(0),
   status: text("status").default("dipesan"),
+  paymentProofUrl: text("payment_proof_url"),
+  expiresAt: text("expires_at"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 

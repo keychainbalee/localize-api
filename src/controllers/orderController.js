@@ -1,6 +1,7 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { orders, orderItems, products, userLocations, storeSettings, users } from "../config/schema.js";
+import { uploadToCloudinary } from "../config/cloudinary.js";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius bumi dalam km
@@ -14,6 +15,50 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+};
+
+// Fungsi pembantu untuk membatalkan pesanan yang melebihi batas waktu 24 jam secara otomatis
+const checkAndExpireOrders = async () => {
+  try {
+    const now = new Date().toISOString();
+    
+    // Cari semua order dengan status 'dipesan' yang sudah melewati batas expiresAt
+    const expiredOrders = await db.select()
+      .from(orders)
+      .where(and(
+        eq(orders.status, "dipesan"),
+        sql`expires_at < ${now}`
+      ));
+
+    for (const order of expiredOrders) {
+      // 1. Ubah status pesanan menjadi "batal" (hangus)
+      await db.update(orders)
+        .set({ status: "batal" })
+        .where(eq(orders.id, order.id));
+
+      // 2. Kembalikan stok item sepatu yang dipesan ke katalog produk
+      const itemsList = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+      for (const item of itemsList) {
+        const prodResult = await db.select().from(products).where(eq(products.id, item.productId));
+        if (prodResult.length > 0) {
+          const product = prodResult[0];
+          const sizeStockObj = JSON.parse(product.sizeStock || "{}");
+          sizeStockObj[item.size] = (Number(sizeStockObj[item.size]) || 0) + item.quantity;
+          const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
+
+          await db.update(products)
+            .set({
+              sizeStock: JSON.stringify(sizeStockObj),
+              stock: newTotalStock
+            })
+            .where(eq(products.id, item.productId));
+        }
+      }
+      console.log(`❌ Pesanan #${order.id} otomatis hangus dan stok dikembalikan karena melebihi batas waktu 24 jam.`);
+    }
+  } catch (err) {
+    console.error("Gagal melakukan pengecekan pesanan hangus:", err.message);
+  }
 };
 
 export const createOrder = async (req, res) => {
@@ -81,6 +126,9 @@ export const createOrder = async (req, res) => {
     }
 
     const finalTotalAmount = itemsSubtotal + shippingFee;
+    
+    // Set batas waktu pembayaran (24 jam dari sekarang)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const orderResult = await db.insert(orders).values({
       userId: Number(userId),
@@ -90,7 +138,9 @@ export const createOrder = async (req, res) => {
       latitude: latitude ? Number(latitude) : 0,
       longitude: longitude ? Number(longitude) : 0,
       distance,
-      shippingFee
+      shippingFee,
+      status: "dipesan",
+      expiresAt
     }).returning();
 
     const orderId = orderResult[0].id;
@@ -123,11 +173,12 @@ export const createOrder = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Pesanan berhasil dibuat!",
+      message: "Pesanan berhasil dibuat! Silakan unggah bukti pembayaran sebelum 24 jam.",
       orderId,
       distance: Number(distance.toFixed(2)),
       shippingFee: Math.round(shippingFee),
-      totalAmount: finalTotalAmount
+      totalAmount: finalTotalAmount,
+      expiresAt
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -138,6 +189,9 @@ export const getMyOrders = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // Jalankan pengecekan order kedaluwarsa secara otomatis
+    await checkAndExpireOrders();
+
     const result = await db.select({
       order_id: orders.id,
       total_amount: orders.totalAmount,
@@ -148,6 +202,8 @@ export const getMyOrders = async (req, res) => {
       distance: orders.distance,
       shipping_fee: orders.shippingFee,
       status: orders.status,
+      payment_proof_url: orders.paymentProofUrl,
+      expires_at: orders.expiresAt,
       created_at: orders.createdAt,
       ordered_size: orderItems.size,
       ordered_quantity: orderItems.quantity,
@@ -168,6 +224,9 @@ export const getMyOrders = async (req, res) => {
 
 export const getAdminOrders = async (req, res) => {
   try {
+    // Jalankan pengecekan order kedaluwarsa secara otomatis
+    await checkAndExpireOrders();
+
     const result = await db.select({
       order_id: orders.id,
       customer_name: users.fullName,
@@ -180,6 +239,8 @@ export const getAdminOrders = async (req, res) => {
       distance: orders.distance,
       shipping_fee: orders.shippingFee,
       status: orders.status,
+      payment_proof_url: orders.paymentProofUrl,
+      expires_at: orders.expiresAt,
       created_at: orders.createdAt,
       ordered_size: orderItems.size,
       ordered_quantity: orderItems.quantity,
@@ -201,6 +262,9 @@ export const getOrderById = async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Jalankan pengecekan order kedaluwarsa secara otomatis
+    await checkAndExpireOrders();
+
     const orderResult = await db.select({
       id: orders.id,
       user_id: orders.userId,
@@ -212,6 +276,8 @@ export const getOrderById = async (req, res) => {
       distance: orders.distance,
       shipping_fee: orders.shippingFee,
       status: orders.status,
+      payment_proof_url: orders.paymentProofUrl,
+      expires_at: orders.expiresAt,
       created_at: orders.createdAt,
       full_name: users.fullName,
       phone_number: users.phoneNumber
@@ -263,6 +329,8 @@ export const getOrderById = async (req, res) => {
         distance: orderData.distance,
         shipping_fee: orderData.shipping_fee,
         status: orderData.status,
+        payment_proof_url: orderData.payment_proof_url,
+        expires_at: orderData.expires_at,
         created_at: orderData.created_at,
         full_name: orderData.full_name,
         phone_number: orderData.phone_number,
@@ -274,11 +342,62 @@ export const getOrderById = async (req, res) => {
   }
 };
 
+// [POST] Unggah Bukti Pembayaran (Maksimal 24 jam sejak order dibuat)
+export const uploadPaymentProof = async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "Bukti pembayaran berupa gambar wajib diunggah" });
+  }
+
+  try {
+    const orderResult = await db.select().from(orders).where(and(
+      eq(orders.id, Number(id)),
+      eq(orders.userId, Number(userId))
+    ));
+
+    if (orderResult.length === 0) {
+      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan" });
+    }
+
+    const orderData = orderResult[0];
+
+    // Cek apakah status pesanan sudah dibatalkan/hangus
+    if (orderData.status === "batal") {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Pesanan ini sudah hangus karena melebihi batas waktu pembayaran 24 jam" 
+      });
+    }
+
+    // Unggah gambar ke Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.buffer);
+    const paymentProofUrl = uploadResult.secure_url;
+
+    // Update status menjadi 'dibayar' dan catat link gambarnya
+    await db.update(orders)
+      .set({
+        status: "dibayar",
+        paymentProofUrl
+      })
+      .where(eq(orders.id, Number(id)));
+
+    res.json({
+      success: true,
+      message: "Bukti transfer berhasil diunggah. Status pesanan diubah menjadi 'dibayar'.",
+      paymentProofUrl
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const validStatuses = ["dipesan", "dibayar", "dikirim", "selesai"];
+  const validStatuses = ["dipesan", "dibayar", "dikirim", "selesai", "batal"];
   if (!status || !validStatuses.includes(status)) {
     return res.status(400).json({ 
       success: false, 
