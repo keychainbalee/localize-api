@@ -70,20 +70,24 @@ async function seed() {
       {
         id: 1,
         name: 'Compass Gazette Low',
+        brand: 'Compass',
         description: 'Sepatu kanvas lokal desain klasik modern.',
         price: 398000,
         stock: 23,
         sizeStock: compassSizeStock,
-        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/compass_low.jpg'
+        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/compass_low.jpg',
+        soldCount: 0
       },
       {
         id: 2,
         name: 'Ventela Public Low',
+        brand: 'Ventela',
         description: 'Sepatu lokal paling populer dengan insole Ultralite Foam.',
         price: 289000,
         stock: 30,
         sizeStock: ventelaSizeStock,
-        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/ventela_public.jpg'
+        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/ventela_public.jpg',
+        soldCount: 0
       }
     ]);
 

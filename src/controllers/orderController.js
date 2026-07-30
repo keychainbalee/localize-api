@@ -36,7 +36,7 @@ const checkAndExpireOrders = async () => {
         .set({ status: "batal" })
         .where(eq(orders.id, order.id));
 
-      // 2. Kembalikan stok item sepatu yang dipesan ke katalog produk
+      // 2. Kembalikan stok item sepatu yang dipesan ke katalog produk & kurangi jumlah terjual
       const itemsList = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
       for (const item of itemsList) {
         const prodResult = await db.select().from(products).where(eq(products.id, item.productId));
@@ -45,16 +45,18 @@ const checkAndExpireOrders = async () => {
           const sizeStockObj = JSON.parse(product.sizeStock || "{}");
           sizeStockObj[item.size] = (Number(sizeStockObj[item.size]) || 0) + item.quantity;
           const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
+          const newSoldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
 
           await db.update(products)
             .set({
               sizeStock: JSON.stringify(sizeStockObj),
-              stock: newTotalStock
+              stock: newTotalStock,
+              soldCount: newSoldCount
             })
             .where(eq(products.id, item.productId));
         }
       }
-      console.log(`❌ Pesanan #${order.id} otomatis hangus dan stok dikembalikan karena melebihi batas waktu 24 jam.`);
+      console.log(`❌ Pesanan #${order.id} otomatis hangus, stok dikembalikan, dan jumlah terjual dikurangi karena melebihi batas waktu 24 jam.`);
     }
   } catch (err) {
     console.error("Gagal melakukan pengecekan pesanan hangus:", err.message);
@@ -162,11 +164,13 @@ export const createOrder = async (req, res) => {
 
       sizeStockObj[item.size] = Number(sizeStockObj[item.size]) - qty;
       const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
+      const newSoldCount = (product.soldCount || 0) + qty;
 
       await db.update(products)
         .set({
           sizeStock: JSON.stringify(sizeStockObj),
-          stock: newTotalStock
+          stock: newTotalStock,
+          soldCount: newSoldCount
         })
         .where(eq(products.id, Number(item.productId)));
     }
@@ -276,8 +280,8 @@ export const getOrderById = async (req, res) => {
       distance: orders.distance,
       shipping_fee: orders.shippingFee,
       status: orders.status,
-      payment_proof_url: orders.paymentProofUrl,
-      expires_at: orders.expiresAt,
+      payment_proof_url: orders.payment_proof_url,
+      expires_at: orders.expires_at,
       created_at: orders.createdAt,
       full_name: users.fullName,
       phone_number: users.phoneNumber

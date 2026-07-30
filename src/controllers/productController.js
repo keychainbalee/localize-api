@@ -9,11 +9,13 @@ export const getProducts = async (req, res) => {
     const formatted = result.map(p => ({
       id: p.id,
       name: p.name,
+      brand: p.brand,
       description: p.description,
       price: p.price,
       stock: p.stock,
       size_stock: JSON.parse(p.sizeStock || "{}"),
       image_url: p.imageUrl,
+      sold_count: p.soldCount,
       created_at: p.createdAt
     }));
     res.json({ success: true, data: formatted });
@@ -35,11 +37,13 @@ export const getProductById = async (req, res) => {
     const formatted = {
       id: p.id,
       name: p.name,
+      brand: p.brand,
       description: p.description,
       price: p.price,
       stock: p.stock,
       size_stock: JSON.parse(p.sizeStock || "{}"),
       image_url: p.imageUrl,
+      sold_count: p.soldCount,
       created_at: p.createdAt
     };
 
@@ -50,7 +54,7 @@ export const getProductById = async (req, res) => {
 };
 
 export const createProduct = async (req, res) => {
-  const { name, description, price, sizeStock, imageUrl } = req.body;
+  const { name, brand, description, price, sizeStock, imageUrl } = req.body;
 
   if (!name || !price) {
     return res.status(400).json({ success: false, message: "Nama dan harga wajib diisi" });
@@ -75,22 +79,26 @@ export const createProduct = async (req, res) => {
 
     const result = await db.insert(products).values({
       name,
+      brand: brand || "Lokal",
       description: description || "",
       price: Number(price),
       stock: totalStock,
       sizeStock: JSON.stringify(sizeStockObj),
-      imageUrl: finalImageUrl
+      imageUrl: finalImageUrl,
+      soldCount: 0
     }).returning();
 
     const p = result[0];
     const formatted = {
       id: p.id,
       name: p.name,
+      brand: p.brand,
       description: p.description,
       price: p.price,
       stock: p.stock,
       size_stock: sizeStockObj,
       image_url: p.imageUrl,
+      sold_count: p.soldCount,
       created_at: p.createdAt
     };
 
@@ -106,7 +114,7 @@ export const createProduct = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, sizeStock, imageUrl } = req.body;
+  const { name, brand, description, price, sizeStock, imageUrl } = req.body;
 
   try {
     const checkProduct = await db.select().from(products).where(eq(products.id, Number(id)));
@@ -133,6 +141,7 @@ export const updateProduct = async (req, res) => {
     await db.update(products)
       .set({
         name: name || existingProduct.name,
+        brand: brand || existingProduct.brand,
         description: description !== undefined ? description : existingProduct.description,
         price: price ? Number(price) : existingProduct.price,
         stock: totalStock,

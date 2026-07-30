@@ -26,11 +26,13 @@ export const userLocations = sqliteTable("user_locations", {
 export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  brand: text("brand").default("Lokal"),
   description: text("description"),
   price: real("price").notNull(),
   stock: integer("stock").default(0),
   sizeStock: text("size_stock").default("{}"),
   imageUrl: text("image_url"),
+  soldCount: integer("sold_count").default(0),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
