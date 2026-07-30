@@ -1,21 +1,64 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../config/db.js";
-import { storeSettings } from "../config/schema.js";
+import { storeSettings, userLocations, users } from "../config/schema.js";
 
 export const getStoreSettings = async (req, res) => {
   try {
-    const result = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+    // Get primary location of the user with 'admin' role
+    const result = await db.select({
+      id: userLocations.id,
+      label: userLocations.label,
+      addressText: userLocations.addressText,
+      addressNotes: userLocations.addressNotes,
+      latitude: userLocations.latitude,
+      longitude: userLocations.longitude,
+      isPrimary: userLocations.isPrimary
+    })
+    .from(userLocations)
+    .innerJoin(users, eq(userLocations.userId, users.id))
+    .where(and(
+      eq(users.role, "admin"),
+      eq(userLocations.isPrimary, 1)
+    ));
+
     if (result.length === 0) {
-      return res.status(404).json({ success: false, message: "Setting toko belum diinisialisasi" });
+      // Fallback to storeSettings table if no admin location is defined
+      const fallbackResult = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+      if (fallbackResult.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            id: 1,
+            name: "Toko Pusat Localize",
+            address: "Grand Indonesia, Jakarta",
+            latitude: -6.1953,
+            longitude: 106.8203,
+            shipping_fee_per_km: 2000
+          }
+        });
+      }
+      const store = fallbackResult[0];
+      return res.json({
+        success: true,
+        data: {
+          id: store.id,
+          name: store.name,
+          address: store.address,
+          latitude: store.latitude,
+          longitude: store.longitude,
+          shipping_fee_per_km: store.shippingFeePerKm
+        }
+      });
     }
-    const store = result[0];
+
+    const adminLoc = result[0];
     const formatted = {
-      id: store.id,
-      name: store.name,
-      address: store.address,
-      latitude: store.latitude,
-      longitude: store.longitude,
-      shipping_fee_per_km: store.shippingFeePerKm
+      id: adminLoc.id,
+      name: adminLoc.label || "Toko Pusat Localize",
+      address: adminLoc.addressText,
+      latitude: adminLoc.latitude,
+      longitude: adminLoc.longitude,
+      shipping_fee_per_km: 2000
     };
     res.json({ success: true, data: formatted });
   } catch (err) {
@@ -35,6 +78,40 @@ export const updateStoreSettings = async (req, res) => {
   }
 
   try {
+    // Reset all admin locations to not primary
+    await db.update(userLocations)
+      .set({ isPrimary: 0 })
+      .where(eq(userLocations.userId, req.user.id));
+
+    // Try to update or insert primary location for admin
+    const checkLoc = await db.select().from(userLocations)
+      .where(and(
+        eq(userLocations.userId, req.user.id),
+        eq(userLocations.label, name || "Toko Utama")
+      ));
+
+    if (checkLoc.length > 0) {
+      await db.update(userLocations)
+        .set({
+          addressText: address,
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          isPrimary: 1
+        })
+        .where(eq(userLocations.id, checkLoc[0].id));
+    } else {
+      await db.insert(userLocations).values({
+        userId: req.user.id,
+        label: name || "Toko Utama",
+        addressText: address,
+        addressNotes: "",
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        isPrimary: 1
+      }).returning();
+    }
+
+    // Update fallback storeSettings table too
     const checkSettings = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
     if (checkSettings.length === 0) {
       await db.insert(storeSettings).values({
