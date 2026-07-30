@@ -123,9 +123,39 @@ export const createOrder = async (req, res) => {
       if (storeResult.length > 0) {
         const store = storeResult[0];
         distance = calculateDistance(Number(latitude), Number(longitude), store.latitude, store.longitude);
-        shippingFee = distance * store.shippingFeePerKm;
       }
     }
+
+    let isJawa = false;
+    if (latitude && longitude) {
+      const lat = Number(latitude);
+      const lng = Number(longitude);
+      if (lat >= -9.0 && lat <= -5.5 && lng >= 105.0 && lng <= 115.0) {
+        isJawa = true;
+      }
+    }
+
+    if (shippingAddress) {
+      const addr = shippingAddress.toLowerCase();
+      if (addr.includes('jawa') || 
+          addr.includes('jakarta') || 
+          addr.includes('banten') || 
+          addr.includes('yogyakarta') || 
+          addr.includes('diy') || 
+          addr.includes('bandung') || 
+          addr.includes('semarang') || 
+          addr.includes('surabaya') || 
+          addr.includes('solo') || 
+          addr.includes('malang') ||
+          addr.includes('bogor') ||
+          addr.includes('tangerang') ||
+          addr.includes('bekasi') ||
+          addr.includes('depok')) {
+        isJawa = true;
+      }
+    }
+
+    shippingFee = isJawa ? 20000 : 50000;
 
     const finalTotalAmount = itemsSubtotal + shippingFee;
     
