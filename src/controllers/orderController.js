@@ -440,9 +440,38 @@ export const updateOrderStatus = async (req, res) => {
   }
 
   try {
-    const result = await db.update(orders)
+    const orderResult = await db.select().from(orders).where(eq(orders.id, Number(id)));
+    if (orderResult.length === 0) {
+      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan" });
+    }
+
+    const prevStatus = orderResult[0].status;
+
+    await db.update(orders)
       .set({ status })
       .where(eq(orders.id, Number(id)));
+
+    // Jika order dibatalkan (dari status selain batal sebelumnya), kembalikan stok & kurangi sold_count
+    if (status === "batal" && prevStatus !== "batal") {
+      const itemsList = await db.select().from(orderItems).where(eq(orderItems.orderId, Number(id)));
+      for (const item of itemsList) {
+        const prodResult = await db.select().from(products).where(eq(products.id, item.productId));
+        if (prodResult.length > 0) {
+          const product = prodResult[0];
+          const sizeStockObj = JSON.parse(product.sizeStock || "{}");
+          sizeStockObj[item.size] = (Number(sizeStockObj[item.size]) || 0) + item.quantity;
+          const newTotalStock = Object.values(sizeStockObj).reduce((acc, curr) => acc + Number(curr), 0);
+          const newSoldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
+          await db.update(products)
+            .set({
+              sizeStock: JSON.stringify(sizeStockObj),
+              stock: newTotalStock,
+              soldCount: newSoldCount
+            })
+            .where(eq(products.id, item.productId));
+        }
+      }
+    }
 
     res.json({ success: true, message: `Status pesanan #${id} diubah menjadi '${status}'` });
   } catch (err) {
