@@ -75,7 +75,7 @@ async function seed() {
         price: 398000,
         stock: 23,
         sizeStock: compassSizeStock,
-        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/compass_low.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1597045566677-8cf032ed6634?q=80&w=600',
         soldCount: 0
       },
       {
@@ -86,7 +86,7 @@ async function seed() {
         price: 289000,
         stock: 30,
         sizeStock: ventelaSizeStock,
-        imageUrl: 'https://res.cloudinary.com/djy19s5bk/image/upload/v1700000000/ventela_public.jpg',
+        imageUrl: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=600',
         soldCount: 0
       }
     ]);

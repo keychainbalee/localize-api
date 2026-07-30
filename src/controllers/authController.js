@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { users } from "../config/schema.js";
+import { uploadToCloudinary } from "../config/cloudinary.js";
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -20,6 +21,12 @@ export const register = async (req, res) => {
   }
 
   try {
+    let finalImageUrl = null;
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      finalImageUrl = uploadResult.secure_url;
+    }
+
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
@@ -28,7 +35,8 @@ export const register = async (req, res) => {
       email,
       phoneNumber,
       passwordHash,
-      role: role || "customer"
+      role: role || "customer",
+      imageUrl: finalImageUrl
     }).returning();
 
     const user = result[0];
@@ -86,6 +94,7 @@ export const getUsers = async (req, res) => {
       email: users.email,
       phoneNumber: users.phoneNumber,
       role: users.role,
+      imageUrl: users.imageUrl,
       createdAt: users.createdAt
     }).from(users);
 
@@ -104,6 +113,7 @@ export const getUserById = async (req, res) => {
       email: users.email,
       phoneNumber: users.phoneNumber,
       role: users.role,
+      imageUrl: users.imageUrl,
       createdAt: users.createdAt
     }).from(users).where(eq(users.id, Number(id)));
 
@@ -119,18 +129,34 @@ export const getUserById = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { fullName, phoneNumber, role } = req.body;
+  const { fullName, phoneNumber, role, imageUrl } = req.body;
 
   try {
+    const userCheck = await db.select().from(users).where(eq(users.id, Number(id)));
+    if (userCheck.length === 0) {
+      return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+    }
+
+    let finalImageUrl = imageUrl || userCheck[0].imageUrl;
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      finalImageUrl = uploadResult.secure_url;
+    }
+
     const result = await db.update(users)
-      .set({ fullName, phoneNumber, role })
+      .set({ 
+        fullName: fullName || userCheck[0].fullName, 
+        phoneNumber: phoneNumber || userCheck[0].phoneNumber, 
+        role: role || userCheck[0].role,
+        imageUrl: finalImageUrl
+      })
       .where(eq(users.id, Number(id)));
 
     if (result.rowsAffected === 0) {
       return res.status(404).json({ success: false, message: "User tidak ditemukan" });
     }
 
-    res.json({ success: true, message: "Profil user berhasil diperbarui" });
+    res.json({ success: true, message: "Profil user berhasil diperbarui", imageUrl: finalImageUrl });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

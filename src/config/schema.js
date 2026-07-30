@@ -8,6 +8,7 @@ export const users = sqliteTable("users", {
   phoneNumber: text("phone_number").notNull(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").default("customer"),
+  imageUrl: text("image_url"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`)
 });
 
