@@ -281,7 +281,7 @@ export const getAdminOrders = async (req, res) => {
       product_name: products.name
     })
     .from(orders)
-    .join(users, eq(orders.userId, users.id))
+    .leftJoin(users, eq(orders.userId, users.id))
     .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
     .leftJoin(products, eq(orderItems.productId, products.id))
     .orderBy(desc(orders.createdAt));
